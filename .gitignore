@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# Xcode user-specific data
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+
+# Build products and caches
+.build/
+build/
+DerivedData/
+work/
+*.app
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Swift Package Manager local state
+.swiftpm/
+
+# Local signing material
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.p8
+*.cer
+*.key
+*.pem
+
+# Local-only configuration
+Local.xcconfig
+Secrets.xcconfig

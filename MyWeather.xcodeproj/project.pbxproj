@@ -1,0 +1,431 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* MyWeatherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* MyWeatherApp.swift */; };
+		A10000000000000000000002 /* WeatherStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* WeatherStore.swift */; };
+		A10000000000000000000003 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* Models.swift */; };
+		A10000000000000000000004 /* ForecastBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* ForecastBuilder.swift */; };
+		A10000000000000000000005 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* WeatherService.swift */; };
+		A10000000000000000000006 /* CityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* CityRepository.swift */; };
+		A10000000000000000000007 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* ContentView.swift */; };
+		A10000000000000000000008 /* AddCityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* AddCityView.swift */; };
+		A1000000000000000000000A /* MyWeatherCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* MyWeatherCoreTests.swift */; };
+		A1000000000000000000000B /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* XCTest.framework */; };
+		A1000000000000000000000C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000F /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A30000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A40000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000001;
+			remoteInfo = MyWeather;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A20000000000000000000001 /* MyWeatherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyWeatherApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* WeatherStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherStore.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		A20000000000000000000004 /* ForecastBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastBuilder.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		A20000000000000000000006 /* CityRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityRepository.swift; sourceTree = "<group>"; };
+		A20000000000000000000007 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* AddCityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCityView.swift; sourceTree = "<group>"; };
+		A2000000000000000000000A /* MyWeatherCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyWeatherCoreTests.swift; sourceTree = "<group>"; };
+		A2000000000000000000000B /* My Weather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "My Weather.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2000000000000000000000C /* MyWeatherTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyWeatherTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2000000000000000000000D /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
+		A2000000000000000000000E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		A2000000000000000000000F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A20000000000000000000010 /* MyWeather.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MyWeather.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A60000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A60000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000B /* XCTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A70000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A70000000000000000000002 /* MyWeather */,
+				A70000000000000000000005 /* MyWeatherTests */,
+				A70000000000000000000006 /* Frameworks */,
+				A70000000000000000000007 /* Products */,
+				A2000000000000000000000E /* README.md */,
+			);
+			sourceTree = "<group>";
+		};
+		A70000000000000000000002 /* MyWeather */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000001 /* MyWeatherApp.swift */,
+				A20000000000000000000002 /* WeatherStore.swift */,
+				A2000000000000000000000F /* Assets.xcassets */,
+				A20000000000000000000010 /* MyWeather.entitlements */,
+				A70000000000000000000003 /* Core */,
+				A70000000000000000000004 /* UI */,
+			);
+			path = MyWeather;
+			sourceTree = "<group>";
+		};
+		A70000000000000000000003 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000003 /* Models.swift */,
+				A20000000000000000000004 /* ForecastBuilder.swift */,
+				A20000000000000000000005 /* WeatherService.swift */,
+				A20000000000000000000006 /* CityRepository.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		A70000000000000000000004 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000007 /* ContentView.swift */,
+				A20000000000000000000008 /* AddCityView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		A70000000000000000000005 /* MyWeatherTests */ = {
+			isa = PBXGroup;
+			children = (
+				A2000000000000000000000A /* MyWeatherCoreTests.swift */,
+			);
+			path = MyWeatherTests;
+			sourceTree = "<group>";
+		};
+		A70000000000000000000006 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A2000000000000000000000D /* XCTest.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A70000000000000000000007 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A2000000000000000000000B /* My Weather.app */,
+				A2000000000000000000000C /* MyWeatherTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000000000000000000001 /* MyWeather */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80000000000000000000002 /* Build configuration list for PBXNativeTarget "MyWeather" */;
+			buildPhases = (
+				A90000000000000000000001 /* Sources */,
+				A60000000000000000000001 /* Frameworks */,
+				AA0000000000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MyWeather;
+			productName = "My Weather";
+			productReference = A2000000000000000000000B /* My Weather.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A50000000000000000000002 /* MyWeatherTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80000000000000000000003 /* Build configuration list for PBXNativeTarget "MyWeatherTests" */;
+			buildPhases = (
+				A90000000000000000000002 /* Sources */,
+				A60000000000000000000002 /* Frameworks */,
+				AA0000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AB0000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = MyWeatherTests;
+			productName = MyWeatherTests;
+			productReference = A2000000000000000000000C /* MyWeatherTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A40000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					A50000000000000000000001 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					A50000000000000000000002 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = A50000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = A80000000000000000000001 /* Build configuration list for PBXProject "MyWeather" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A70000000000000000000001;
+			productRefGroup = A70000000000000000000007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A50000000000000000000001 /* MyWeather */,
+				A50000000000000000000002 /* MyWeatherTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA0000000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000C /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A90000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* MyWeatherApp.swift in Sources */,
+				A10000000000000000000002 /* WeatherStore.swift in Sources */,
+				A10000000000000000000003 /* Models.swift in Sources */,
+				A10000000000000000000004 /* ForecastBuilder.swift in Sources */,
+				A10000000000000000000005 /* WeatherService.swift in Sources */,
+				A10000000000000000000006 /* CityRepository.swift in Sources */,
+				A10000000000000000000007 /* ContentView.swift in Sources */,
+				A10000000000000000000008 /* AddCityView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A90000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000A /* MyWeatherCoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AB0000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000001 /* MyWeather */;
+			targetProxy = A30000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		AC0000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AC0000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		AC0000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = MyWeather/MyWeather.entitlements;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "My Weather";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nikhilsharma.MyWeather;
+				PRODUCT_MODULE_NAME = MyWeatherCore;
+				PRODUCT_NAME = "My Weather";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AC0000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = MyWeather/MyWeather.entitlements;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "My Weather";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nikhilsharma.MyWeather;
+				PRODUCT_MODULE_NAME = MyWeatherCore;
+				PRODUCT_NAME = "My Weather";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AC0000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nikhilsharma.MyWeatherTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/My Weather.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/My Weather";
+			};
+			name = Debug;
+		};
+		AC0000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nikhilsharma.MyWeatherTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/My Weather.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/My Weather";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A80000000000000000000001 /* Build configuration list for PBXProject "MyWeather" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC0000000000000000000001 /* Debug */,
+				AC0000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80000000000000000000002 /* Build configuration list for PBXNativeTarget "MyWeather" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC0000000000000000000003 /* Debug */,
+				AC0000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80000000000000000000003 /* Build configuration list for PBXNativeTarget "MyWeatherTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC0000000000000000000005 /* Debug */,
+				AC0000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A40000000000000000000001 /* Project object */;
+}
