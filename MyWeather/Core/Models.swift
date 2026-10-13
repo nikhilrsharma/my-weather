@@ -141,8 +141,8 @@ public struct PrecipitationChance: Codable, Equatable, Sendable {
 
     public var label: String {
         if kind == .precipitation {
-            guard let probability else { return "Chance of precipitation —" }
-            return "Chance of precipitation \(probability)%"
+            guard let probability else { return "Chance of Precipitation —" }
+            return "Chance of Precipitation \(probability)%"
         }
 
         guard let probability else { return "\(kind.rawValue) —" }
@@ -177,9 +177,11 @@ public struct TodayForecast: Codable, Equatable, Sendable {
 public struct WeatherSnapshot: Codable, Equatable, Sendable {
     public let current: CurrentWeather
     public let today: TodayForecast
+    public let dayTimeline: DayTimeline?
 
-    public init(current: CurrentWeather, today: TodayForecast) {
+    public init(current: CurrentWeather, today: TodayForecast, dayTimeline: DayTimeline? = nil) {
         self.current = current
         self.today = today
+        self.dayTimeline = dayTimeline
     }
 }

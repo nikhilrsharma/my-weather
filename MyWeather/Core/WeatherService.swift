@@ -70,18 +70,22 @@ public struct OpenMeteoWeatherService: WeatherServing {
             URLQueryItem(name: "latitude", value: String(city.latitude)),
             URLQueryItem(name: "longitude", value: String(city.longitude)),
             URLQueryItem(name: "timezone", value: city.timezone),
-            URLQueryItem(name: "forecast_days", value: "1"),
+            // Padding supplies the complete local day during 23/25-hour DST days.
+            URLQueryItem(name: "past_days", value: "1"),
+            URLQueryItem(name: "forecast_days", value: "2"),
+            URLQueryItem(name: "timeformat", value: "unixtime"),
             URLQueryItem(name: "temperature_unit", value: "celsius"),
             URLQueryItem(name: "current", value: "temperature_2m,relative_humidity_2m,weather_code"),
+            URLQueryItem(name: "hourly", value: "weather_code,is_day"),
             URLQueryItem(
                 name: "daily",
-                value: "temperature_2m_min,temperature_2m_max,weather_code,precipitation_probability_max"
+                value: "temperature_2m_min,temperature_2m_max,weather_code,precipitation_probability_max,sunrise,sunset"
             )
         ]
         guard let url = components?.url else { throw WeatherServiceError.invalidURL }
 
         return try ForecastBuilder.build(
-            from: await request(url, expectedHost: Self.forecastHost)
+            from: await request(url, expectedHost: Self.forecastHost), timezone: city.timezone
         )
     }
 

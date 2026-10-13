@@ -21,13 +21,13 @@ final class MyWeatherCoreTests: XCTestCase {
         XCTAssertEqual(snapshot.today.maximumTemperature, 19)
         XCTAssertEqual(snapshot.today.condition, .sunCloudMix)
         XCTAssertEqual(snapshot.today.precipitation, PrecipitationChance(kind: .precipitation, probability: 70))
-        XCTAssertEqual(snapshot.today.precipitation.label, "Chance of precipitation 70%")
+        XCTAssertEqual(snapshot.today.precipitation.label, "Chance of Precipitation 70%")
     }
 
     func testDailyConditionAndPrecipitationLabelsUseDailyWeatherCode() throws {
         let cases: [(Int, WholeDayCondition, PrecipitationKind, String)] = [
-            (0, .sunny, .precipitation, "Chance of precipitation 60%"),
-            (3, .cloudy, .precipitation, "Chance of precipitation 60%"),
+            (0, .sunny, .precipitation, "Chance of Precipitation 60%"),
+            (3, .cloudy, .precipitation, "Chance of Precipitation 60%"),
             (53, .drizzle, .drizzle, "Drizzle 60%"),
             (67, .freezingRain, .freezingRain, "Freezing Rain 60%"),
             (61, .rain, .rain, "Rain 60%"),
@@ -66,6 +66,17 @@ final class MyWeatherCoreTests: XCTestCase {
         XCTAssertEqual(snapshot.today.precipitation, PrecipitationChance(kind: .rain, probability: nil))
         XCTAssertEqual(snapshot.today.precipitation.label, "Rain —")
     }
+
+    func testMissingPrecipitationLabelUsesTitleCase() {
+        XCTAssertEqual(PrecipitationChance(kind: .precipitation, probability: nil).label, "Chance of Precipitation —")
+    }
+
+    #if !SWIFT_PACKAGE
+    func testLastUpdatedLabelUsesTitleCaseInBothStates() {
+        XCTAssertEqual(lastUpdatedText(nil), "Last Updated: Not Yet")
+        XCTAssertTrue(lastUpdatedText(Date(timeIntervalSince1970: 1_800_000_000)).hasPrefix("Last Updated: "))
+    }
+    #endif
 
     func testInvalidDailyTemperatureRangeIsRejected() {
         let data = forecastData(

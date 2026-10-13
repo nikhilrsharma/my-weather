@@ -15,7 +15,7 @@ struct AddCityView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 HStack(spacing: 10) {
-                    TextField("City name", text: $query)
+                    TextField("City Name", text: $query)
                         .font(.weatherBody)
                         .weatherCityTextInput()
                         .submitLabel(.search)
@@ -51,7 +51,7 @@ struct AddCityView: View {
                         Text("Type at least 2 characters")
                             .foregroundStyle(.secondary)
                     } else if results.isEmpty {
-                        Text("No results")
+                        Text("No Results")
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(results) { city in
@@ -71,7 +71,7 @@ struct AddCityView: View {
                                             .foregroundStyle(.secondary)
                                     }
                                     if store.contains(city) {
-                                        Text("Already added")
+                                        Text("Already Added")
                                             .font(.weatherFootnote)
                                             .foregroundStyle(.secondary)
                                     }
@@ -135,7 +135,7 @@ struct AddCityView: View {
                 guard !Task.isCancelled else { return }
                 results = []
                 isSearching = false
-                errorMessage = "Search unavailable"
+                errorMessage = "Search Unavailable"
             }
         }
     }

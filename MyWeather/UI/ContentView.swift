@@ -85,11 +85,29 @@ struct ContentView: View {
 }
 
 private struct CityRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .footnote) private var timelineWidth = 154.0
     let city: SavedCity
     let snapshot: WeatherSnapshot?
     let isUnavailable: Bool
 
     var body: some View {
+        Group {
+            if let timeline = snapshot?.dayTimeline {
+                CityWeatherLayout(timelineWidth: timelineWidth, stackVertically: dynamicTypeSize > .xLarge) {
+                    weatherText
+                        .accessibilitySortPriority(1)
+                    DayTimelineView(timeline: timeline)
+                }
+            } else {
+                weatherText
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var weatherText: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(city.name)
                 .font(.weatherHeadline)
@@ -120,7 +138,8 @@ private struct CityRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 4)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 }
@@ -173,11 +192,11 @@ private let lastUpdatedDateFormatter: DateFormatter = {
 }()
 
 func lastUpdatedText(_ date: Date?) -> String {
-    guard let date else { return "Last updated: Not yet" }
+    guard let date else { return "Last Updated: Not Yet" }
 
     let timeZone = TimeZone.autoupdatingCurrent.abbreviation(for: date)
     let suffix = timeZone.map { " \($0)" } ?? ""
-    return "Last updated: \(lastUpdatedDateFormatter.string(from: date))\(suffix)"
+    return "Last Updated: \(lastUpdatedDateFormatter.string(from: date))\(suffix)"
 }
 
 func wholeDegrees(_ value: Double) -> String {

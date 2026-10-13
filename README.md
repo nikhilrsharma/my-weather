@@ -1,8 +1,26 @@
 # My Weather
 
-A small, text-first personal weather app for iPhone, iPad, and Mac. For up to five saved cities, its main screen shows current temperature in Celsius, today’s low and high, humidity, whole-day conditions, and a clearly named precipitation chance. Cities can be reordered and the order is saved. The interface uses Verdana, is always dark, and shows when weather was last updated. It does not fetch weather when the app opens: it immediately displays the last successfully refreshed values, then replaces them when **Refresh** is pressed or after a city is added.
+A small, text-first personal weather app for iPhone, iPad, and Mac. For up to five saved cities, its main screen shows current temperature in Celsius, today’s low and high, humidity, whole-day conditions, a clearly named precipitation chance, and compact daily weather blocks. Cities can be reordered and the order is saved. The interface uses Verdana, is always dark, and shows when weather was last updated. It does not fetch weather when the app opens: it immediately displays the last successfully refreshed values, then replaces them when **Refresh** is pressed or after a city is added.
 
 The complete portfolio product requirements document is available at [docs/My_Weather_Portfolio_PRD.pdf](docs/My_Weather_Portfolio_PRD.pdf).
+
+## Current version: 1.4.1 (build 6)
+
+- Compact daily weather blocks with readable time ranges and gradients around light changes.
+- Consistent capitalization across short interface labels, including **Low Light**, **Sun / Cloud**, and **Last Updated**.
+- Existing city lists and cached weather remain compatible. No additional permissions, dependencies, or background fetching.
+
+## Daily weather blocks
+
+Each city has a compact stack of up to six colored periods beside its weather values. Times use a 24-hour clock in **that city's local time zone**; `24` means the midnight ending the day. The small date label identifies the cached forecast day. The main **Last Updated** timestamp uses the device's time zone.
+
+- Adjacent similar hours are combined. Mixed-period labels prioritize higher-severity weather rather than describing the whole period as sunny. Rain, snow, freezing rain, fog, and storms have dedicated categories, including at night.
+- **Night**, **Dawn**, **Sunny**, **Sun / Cloud**, **Cloudy**, **Low Light**, and **Dusk** use distinct colors and gradients. Light transitions are approximate hourly summaries around forecast sunrise/sunset, not exact astronomical twilight times.
+- These are native SwiftUI views with text and VoiceOver labels, not downloaded images. Larger text sizes and narrow windows stack the blocks below the city values.
+- Blocks are cached with each weather snapshot and stay visible offline. When upgrading from a version without blocks, press **Refresh** once to fetch the required hourly data.
+- One combined forecast request per city includes current and daily fields, hourly weather codes/daylight flags, and sunrise/sunset. A day of padding on each side covers local daylight-saving boundaries; only the selected local day is displayed.
+
+Forecast field definitions: [Open-Meteo documentation](https://open-meteo.com/en/docs).
 
 ## Install on an iPhone, iPad, or Mac
 
@@ -10,9 +28,11 @@ The complete portfolio product requirements document is available at [docs/My_We
 2. Open `MyWeather.xcodeproj`.
 3. Select the **MyWeather** target, open **Signing & Capabilities**, and choose your Apple Account team.
 4. For iPhone or iPad, connect the device, enable Developer Mode if prompted, select it as the run destination, and press Run.
-5. For Mac, select **My Mac (Mac Catalyst)** as the run destination and press Run.
+5. For Mac, select **My Mac** as the run destination and press Run. The project also supports Mac Catalyst.
 
 An unpaid Apple Account uses Personal Team signing, so the app must be rebuilt and reinstalled periodically.
+
+The public project does not include a development team or signing credentials. Choose your own team locally; do not commit personal signing changes. Updating an existing installation with the same bundle identifier and signing team preserves its saved cities and cache.
 
 ## Data and privacy
 
@@ -28,6 +48,12 @@ The Mac build uses App Sandbox with outgoing network access as its only addition
 
 - In Xcode, choose **Product → Test**.
 - The core tests can also run from Terminal with `swift test` in this folder.
+
+Version 1.4.1 validation: **27 core tests** and **28 iOS simulator tests**, including weather categories, mixed periods, full local days across daylight-saving changes, old-cache compatibility, and display-label capitalization. iOS and native Mac Release builds were also validated.
+
+## Credits
+
+Created by **Nikhil Sharma**, with implementation assistance from **ChatGPT models**. Weather and city-data credits are listed above; their service terms and attribution requirements apply separately from this project's code license.
 
 ## License
 
