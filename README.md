@@ -4,13 +4,14 @@ A small, text-first personal weather app for iPhone, iPad, and Mac. For up to fi
 
 The complete portfolio product requirements document is available at [docs/My_Weather_Portfolio_PRD.pdf](docs/My_Weather_Portfolio_PRD.pdf).
 
-## Current version: 1.5.1 (build 8)
+## Current version: 1.5.2 (build 9)
 
-- City-local 24-hour clocks next to city names, including the relevant time zone (for example, **Mumbai 03:15 IST**).
+- Current temperature sits next to the city name (for example, **Mumbai 25°C**). The city-local 24-hour clock and relevant time zone appear on the line below (for example, **03:15 IST**).
+- Daily conditions such as **Sunny**, **Rain**, and **Cloudy** appear in compact rounded badges. Weather-related colors, opaque dark fills, light text, and visible borders keep them readable in dark mode. Humidity remains plain text; only the daily condition gets a badge.
 - A red **Now** dot centered inside the current weather bar, fixed near the right edge with a small gap. Dots line up vertically; they are not progress indicators.
 - Equal bar widths and heights across every saved city. Bars now fill their available horizontal space, leaving the normal row margin at the right edge.
 - Responsive layout: wider windows place bars beside weather values; compact widths and accessibility text sizes put full-width bars below. Content reflows after rotation or resizing, without shrinking the user's chosen text size.
-- Long city names and clocks move onto separate lines when needed. At large text sizes, time and condition can stack inside every bar to avoid cramped columns or mid-word breaks. Main and About content scroll on short screens.
+- Long city names and temperatures move onto separate lines when needed. Humidity and condition stay inline when they fit; otherwise the badge moves below and its label wraps as needed. At large text sizes, time and condition can stack inside every bar. Main and About content scroll on short screens.
 - Compact daily weather blocks with readable time ranges and gradients around light changes.
 - Consistent capitalization across short interface labels, including **Low Light**, **Sun / Cloud**, and **Last Updated**.
 - Existing city lists and cached weather remain compatible. No additional permissions, dependencies, or background fetching.
@@ -56,7 +57,7 @@ The Mac build uses App Sandbox with outgoing network access as its only addition
 - In Xcode, choose **Product → Test**.
 - The core tests can also run from Terminal with `swift test` in this folder.
 
-Version 1.5.1 validation: **34 core tests**, the **43-test iOS suite on both iPhone and iPad simulators**, and **41 Mac tests**, including weather categories, local daylight-saving days, city clocks, Now boundaries, cache compatibility, full-width bar allocation, resize round trips, shared sizing, and large-text reflow. The iOS tests produce reviewable screenshots at small-phone, phone, landscape, and tablet widths, plus the largest Dynamic Type setting and the main/search/About screens. Signed iPhone, unsigned public-source iOS, and native Mac Release builds were also validated.
+Version 1.5.2 validation: **34 core tests**, the **48-test iOS suite on both iPhone and iPad simulators**, and **45 Mac tests**, including weather categories, local daylight-saving days, city clocks, Now boundaries, cache compatibility, full-width bar allocation, resize round trips, shared sizing, and large-text reflow. Badge tests cover every daily condition, at least **4.5:1 text-to-fill contrast**, at least **3:1 border-to-fill contrast**, and padding-aware column measurement. The iOS tests produce reviewable screenshots at small-phone, phone, landscape, and tablet widths, plus the largest Dynamic Type setting, all badges, missing/legacy weather, and the main/search/About screens. Signed iPhone, unsigned public-source iOS, and native Mac Release builds were also validated.
 
 Necessary wrapping and vertical scrolling are intentional on small screens and at larger text sizes. These checks do not constitute exhaustive testing of every device, OS version, or accessibility configuration.
 

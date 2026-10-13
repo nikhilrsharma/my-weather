@@ -12,21 +12,24 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            let textWidth = WeatherBarMetrics.naturalTextWidth(
-                store.snapshots.values.flatMap { WeatherSummaryText($0).lines }, fontSize: weatherFontSize
-            ) + 2 // Small rounding allowance keeps complete weather lines together.
-            let sizing = CityWeatherSizing(
-                rowWidth: cityRowWidth > 0 ? cityRowWidth : 280,
-                preferredTextWidth: max(120, textWidth),
-                minimumTimelineWidth: minimumTimelineWidth,
-                forceStacked: dynamicTypeSize.isAccessibilitySize
-            )
-            let metrics = WeatherBarMetrics(
-                blocks: store.snapshots.values.flatMap { $0.dayTimeline?.blocks ?? [] },
-                width: sizing.timelineWidth,
-                fontSize: timelineFontSize
-            )
             TimelineView(.everyMinute) { context in
+                let textWidth = store.cities.map { city in
+                    let clock = CityClock.text(at: context.date, timezone: city.timezone)
+                    return store.snapshots[city.id].map {
+                        WeatherSummaryText($0).preferredWidth(clock: clock, fontSize: weatherFontSize)
+                    } ?? WeatherBarMetrics.naturalTextWidth([clock], fontSize: weatherFontSize)
+                }.max() ?? 120
+                let sizing = CityWeatherSizing(
+                    rowWidth: cityRowWidth > 0 ? cityRowWidth : 280,
+                    preferredTextWidth: max(120, textWidth),
+                    minimumTimelineWidth: minimumTimelineWidth,
+                    forceStacked: dynamicTypeSize.isAccessibilitySize
+                )
+                let metrics = WeatherBarMetrics(
+                    blocks: store.snapshots.values.flatMap { $0.dayTimeline?.blocks ?? [] },
+                    width: sizing.timelineWidth,
+                    fontSize: timelineFontSize
+                )
                 List {
                     Section {
                         if store.cities.isEmpty {
@@ -116,15 +119,16 @@ struct CityRow: View {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     cityName
-                    cityClock
+                    currentTemperature
                 }
                 .fixedSize(horizontal: true, vertical: true)
                 VStack(alignment: .leading, spacing: 3) {
                     cityName
-                    cityClock
+                    currentTemperature
                 }
                 .fixedSize(horizontal: false, vertical: true)
             }
+            .accessibilityElement(children: .combine)
             if let timeline = snapshot?.dayTimeline {
                 CityWeatherLayout(sizing: sizing) {
                     weatherText
@@ -149,6 +153,16 @@ struct CityRow: View {
         Text(city.name).font(.weatherHeadline)
     }
 
+    @ViewBuilder
+    private var currentTemperature: some View {
+        if let snapshot {
+            Text(WeatherSummaryText(snapshot).current)
+                .font(.weatherSubheadline)
+                .monospacedDigit()
+                .accessibilityLabel("Current Temperature: \(wholeDegrees(snapshot.current.temperature))")
+        }
+    }
+
     private var cityClock: some View {
         Text(CityClock.text(at: now, timezone: city.timezone))
             .font(.weatherFootnote)
@@ -160,17 +174,13 @@ struct CityRow: View {
 
     private var weatherText: some View {
         VStack(alignment: .leading, spacing: 5) {
+            cityClock
             if let snapshot {
                 let summary = WeatherSummaryText(snapshot)
-                Text(summary.current)
-                    .font(.weatherSubheadline)
-
                 Text(summary.lowHigh)
-                .font(.weatherSubheadline)
-
-                Text(summary.humidityCondition)
                     .font(.weatherSubheadline)
-                    .foregroundStyle(.secondary)
+
+                DailyConditionRow(humidity: summary.humidity, condition: snapshot.today.condition)
 
                 Text(summary.precipitation)
                     .font(.weatherSubheadline)
@@ -190,15 +200,109 @@ struct CityRow: View {
 struct WeatherSummaryText {
     let current: String
     let lowHigh: String
-    let humidityCondition: String
+    let humidity: String
+    let condition: String
     let precipitation: String
-    var lines: [String] { [current, lowHigh, humidityCondition, precipitation] }
+
+    func preferredWidth(clock: String, fontSize: CGFloat) -> CGFloat {
+        let plainWidth = WeatherBarMetrics.naturalTextWidth([clock, lowHigh, precipitation], fontSize: fontSize)
+        let badgeRowWidth = WeatherBarMetrics.naturalTextWidth([humidity + " ·"], fontSize: fontSize)
+            + DailyConditionRow.spacing
+            + WeatherBarMetrics.naturalTextWidth([condition], fontSize: fontSize)
+            + 2 * DailyConditionBadge.horizontalInset
+        return max(plainWidth, badgeRowWidth) + 2 // Text rounding allowance.
+    }
 
     init(_ snapshot: WeatherSnapshot) {
         current = wholeDegrees(snapshot.current.temperature)
         lowHigh = "Low \(wholeDegrees(snapshot.today.minimumTemperature)) · High \(wholeDegrees(snapshot.today.maximumTemperature))"
-        humidityCondition = "Humidity \(snapshot.current.humidity)% · \(snapshot.today.condition.rawValue)"
+        humidity = "Humidity \(snapshot.current.humidity)%"
+        condition = snapshot.today.condition.rawValue
         precipitation = snapshot.today.precipitation.label
+    }
+}
+
+/// Keep the fourth line inline when it fits; otherwise give the full condition
+/// its own line rather than truncating it or shrinking the user's chosen font.
+struct DailyConditionRow: View {
+    static let spacing: CGFloat = 5
+    let humidity: String
+    let condition: WholeDayCondition
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: Self.spacing) {
+                Text(humidity + " ·").foregroundStyle(.secondary)
+                DailyConditionBadge(condition: condition)
+            }
+            .fixedSize(horizontal: true, vertical: true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(humidity).foregroundStyle(.secondary)
+                DailyConditionBadge(condition: condition)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.weatherSubheadline)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(humidity), \(condition.rawValue)")
+    }
+}
+
+struct DailyConditionBadge: View {
+    static let horizontalInset: CGFloat = 8
+    let condition: WholeDayCondition
+
+    var body: some View {
+        let palette = DailyConditionPalette(condition)
+        Text(condition.rawValue)
+            .font(.weatherSubheadline)
+            .foregroundStyle(palette.foreground)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, Self.horizontalInset)
+            .padding(.vertical, 3)
+            .background {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(palette.background)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(palette.border, lineWidth: 1)
+            }
+    }
+}
+
+/// Opaque, dark-mode colors keep contrast predictable. Meaning is always
+/// conveyed by the full condition label as well as by the weather-color family.
+struct DailyConditionPalette: Equatable {
+    let foregroundHex: UInt32
+    let backgroundHex: UInt32
+    let borderHex: UInt32
+
+    init(_ condition: WholeDayCondition) {
+        let values: (UInt32, UInt32, UInt32)
+        switch condition {
+        case .sunny: values = (0xFFD87A, 0x483611, 0xC9A345)
+        case .sunCloudMix: values = (0xFFE4A6, 0x414039, 0xBBA879)
+        case .cloudy: values = (0xE1E7EF, 0x363E4B, 0x8D9BAF)
+        case .fog: values = (0xD5EFEA, 0x2C4543, 0x8AB6AC)
+        case .drizzle: values = (0xD0EFF8, 0x214451, 0x78B8CD)
+        case .rain, .showers: values = (0xD9EAFE, 0x253D57, 0x7AABD7)
+        case .freezingDrizzle, .freezingRain: values = (0xDDE4FF, 0x354058, 0x9CAEE0)
+        case .snow, .snowShowers: values = (0xDCF5FF, 0x2D4652, 0x92C8DA)
+        case .thunderstorm: values = (0xEEDDFF, 0x473656, 0xBE9AD6)
+        case .unknown: values = (0xE8E8EE, 0x3D3D44, 0xACABB8)
+        }
+        (foregroundHex, backgroundHex, borderHex) = values
+    }
+
+    var foreground: Color { Self.color(foregroundHex) }
+    var background: Color { Self.color(backgroundHex) }
+    var border: Color { Self.color(borderHex) }
+
+    private static func color(_ hex: UInt32) -> Color {
+        Color(red: Double((hex >> 16) & 0xFF) / 255,
+              green: Double((hex >> 8) & 0xFF) / 255,
+              blue: Double(hex & 0xFF) / 255)
     }
 }
 

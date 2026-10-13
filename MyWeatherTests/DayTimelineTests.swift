@@ -284,6 +284,65 @@ final class DayTimelineTests: XCTestCase {
     }
 
     #if !SWIFT_PACKAGE
+    func testSummaryKeepsCurrentTemperatureSeparateFromDailyCondition() throws {
+        let base = try snapshot(fixture())
+        let value = WeatherSnapshot(current: base.current, today: TodayForecast(
+            minimumTemperature: 8, maximumTemperature: 18, condition: .rain,
+            precipitation: base.today.precipitation))
+        let summary = WeatherSummaryText(value)
+        XCTAssertEqual(summary.current, "14°C")
+        XCTAssertEqual(summary.lowHigh, "Low 8°C · High 18°C")
+        XCTAssertEqual(summary.humidity, "Humidity 70%")
+        XCTAssertEqual(summary.condition, "Rain")
+        XCTAssertNotEqual(value.current.condition.rawValue, summary.condition)
+        XCTAssertEqual(summary.precipitation, base.today.precipitation.label)
+    }
+
+    func testWeatherColumnMeasurementIncludesBadgeAndLocalClock() throws {
+        let summary = WeatherSummaryText(try snapshot(fixture()))
+        for size in [13.0, 26, 40] {
+            let clock = "23:59 GMT+05:45"
+            let measured = summary.preferredWidth(clock: clock, fontSize: size)
+            let badgeWidth = WeatherBarMetrics.naturalTextWidth([summary.humidity + " ·"], fontSize: size)
+                + DailyConditionRow.spacing
+                + WeatherBarMetrics.naturalTextWidth([summary.condition], fontSize: size)
+                + 2 * DailyConditionBadge.horizontalInset
+            XCTAssertGreaterThanOrEqual(measured, badgeWidth)
+            XCTAssertGreaterThanOrEqual(measured, WeatherBarMetrics.naturalTextWidth([clock], fontSize: size))
+        }
+        XCTAssertGreaterThan(summary.preferredWidth(clock: "Time Unavailable", fontSize: 26),
+                             summary.preferredWidth(clock: "Time Unavailable", fontSize: 13) * 1.8)
+    }
+
+    func testEveryDailyConditionBadgeHasReadableDarkModeContrast() {
+        func luminance(_ hex: UInt32) -> Double {
+            let channels = [16, 8, 0].map { shift -> Double in
+                let channel = Double((hex >> shift) & 0xFF) / 255
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+        }
+        func contrast(_ first: UInt32, _ second: UInt32) -> Double {
+            let a = luminance(first), b = luminance(second)
+            return (max(a, b) + 0.05) / (min(a, b) + 0.05)
+        }
+        for condition in WholeDayCondition.allCases {
+            let palette = DailyConditionPalette(condition)
+            XCTAssertGreaterThanOrEqual(contrast(palette.foregroundHex, palette.backgroundHex), 4.5, condition.rawValue)
+            XCTAssertGreaterThanOrEqual(contrast(palette.borderHex, palette.backgroundHex), 3, condition.rawValue)
+            XCTAssertGreaterThanOrEqual(contrast(palette.borderHex, 0x2C2C2E), 3, condition.rawValue)
+        }
+    }
+
+    func testDailyConditionPaletteGroupsRelatedWeatherWithoutLosingLabels() {
+        XCTAssertEqual(DailyConditionPalette(.rain), DailyConditionPalette(.showers))
+        XCTAssertEqual(DailyConditionPalette(.snow), DailyConditionPalette(.snowShowers))
+        XCTAssertEqual(DailyConditionPalette(.freezingRain), DailyConditionPalette(.freezingDrizzle))
+        XCTAssertNotEqual(DailyConditionPalette(.sunny), DailyConditionPalette(.rain))
+        XCTAssertNotEqual(DailyConditionPalette(.fog), DailyConditionPalette(.cloudy))
+        XCTAssertNotEqual(DailyConditionPalette(.unknown), DailyConditionPalette(.sunny))
+    }
+
     func testResponsiveColumnsUseEveryAvailablePoint() {
         for width in [240.0, 280, 335, 362, 390, 664, 704, 984, 1_400] {
             let sizing = CityWeatherSizing(rowWidth: width, preferredTextWidth: 250,
@@ -397,7 +456,8 @@ final class DayTimelineTests: XCTestCase {
             let fontSize = UIFontMetrics(forTextStyle: .footnote).scaledValue(for: 11, compatibleWith: traits)
             let textSize = UIFontMetrics(forTextStyle: .subheadline).scaledValue(for: 13, compatibleWith: traits)
             let sizing = CityWeatherSizing(rowWidth: width,
-                preferredTextWidth: WeatherBarMetrics.naturalTextWidth(WeatherSummaryText(value).lines, fontSize: textSize) + 2,
+                preferredTextWidth: WeatherSummaryText(value).preferredWidth(
+                    clock: CityClock.text(at: extra.start, timezone: city.timezone), fontSize: textSize),
                 minimumTimelineWidth: 210 * fontSize / 11, forceStacked: type.isAccessibilitySize)
             let metrics = WeatherBarMetrics(blocks: blocks, width: sizing.timelineWidth, fontSize: fontSize)
             let view = CityRow(city: city, snapshot: value, isUnavailable: false,
@@ -413,6 +473,53 @@ final class DayTimelineTests: XCTestCase {
             attachment.lifetime = .keepAlways
             add(attachment)
         }
+    }
+
+    @MainActor
+    func testDailyConditionBadgeRenderMatrixAndMissingWeather() throws {
+        for (name, width, type) in [
+            ("compact", 280.0, DynamicTypeSize.large),
+            ("wide", 664.0, .large),
+            ("largest-text", 280.0, .accessibility5)
+        ] {
+            let view = VStack(alignment: .leading, spacing: 12) {
+                ForEach(WholeDayCondition.allCases, id: \.self) { condition in
+                    DailyConditionRow(humidity: "Humidity 100%", condition: condition)
+                }
+            }
+            .frame(width: width, alignment: .leading).padding(20)
+            .background(Color(white: 0.11))
+            .environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, type)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 1
+            let image = try XCTUnwrap(renderer.uiImage)
+            XCTAssertEqual(image.size.width, width + 40, accuracy: 1)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "daily-badges-\(name)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+
+        let city = SavedCity(id: 100, name: "Mumbai", region: "", country: "India",
+                             latitude: 19, longitude: 73, timezone: "Asia/Kolkata")
+        let value = try snapshot(fixture())
+        let legacy = WeatherSnapshot(current: value.current, today: value.today)
+        let sizing = CityWeatherSizing(rowWidth: 280, preferredTextWidth: 250,
+                                       minimumTimelineWidth: 210, forceStacked: false)
+        let metrics = WeatherBarMetrics(blocks: [], width: 280, fontSize: 11)
+        let rows = VStack(alignment: .leading, spacing: 20) {
+            CityRow(city: city, snapshot: nil, isUnavailable: true, now: Date(), sizing: sizing, metrics: metrics)
+            CityRow(city: city, snapshot: legacy, isUnavailable: false, now: Date(), sizing: sizing, metrics: metrics)
+        }
+        .frame(width: 280).padding(20).background(Color.black).environment(\.colorScheme, .dark)
+        let renderer = ImageRenderer(content: rows)
+        renderer.scale = 1
+        let image = try XCTUnwrap(renderer.uiImage)
+        XCTAssertEqual(image.size.width, 320, accuracy: 1)
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "daily-badges-missing-and-legacy-weather"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     @MainActor
