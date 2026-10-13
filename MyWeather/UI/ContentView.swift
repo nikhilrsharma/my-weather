@@ -2,60 +2,66 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var store: WeatherStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showingAddCity = false
     @State private var showingAbout = false
     @State private var cityRowWidth: CGFloat = 0
-    @ScaledMetric(relativeTo: .footnote) private var timelineWidth = 174.0
+    @ScaledMetric(relativeTo: .footnote) private var minimumTimelineWidth = 210.0
     @ScaledMetric(relativeTo: .footnote) private var timelineFontSize = 11.0
+    @ScaledMetric(relativeTo: .subheadline) private var weatherFontSize = 13.0
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 0) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("My Weather")
-                        .font(.weatherLargeTitle)
-
-                    Text(lastUpdatedText(store.lastUpdated))
-                        .font(.weatherFootnote)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 6)
-
-                if store.cities.isEmpty {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Text("No Cities")
-                            .font(.weatherBody)
-                        Spacer()
-                    }
-                    Spacer()
-                } else {
-                    let metrics = WeatherBarMetrics(
-                        blocks: store.snapshots.values.flatMap { $0.dayTimeline?.blocks ?? [] },
-                        width: cityRowWidth > 0 ? min(timelineWidth, cityRowWidth) : timelineWidth,
-                        fontSize: timelineFontSize
-                    )
-                    TimelineView(.everyMinute) { context in
-                        List {
+            let textWidth = WeatherBarMetrics.naturalTextWidth(
+                store.snapshots.values.flatMap { WeatherSummaryText($0).lines }, fontSize: weatherFontSize
+            ) + 2 // Small rounding allowance keeps complete weather lines together.
+            let sizing = CityWeatherSizing(
+                rowWidth: cityRowWidth > 0 ? cityRowWidth : 280,
+                preferredTextWidth: max(120, textWidth),
+                minimumTimelineWidth: minimumTimelineWidth,
+                forceStacked: dynamicTypeSize.isAccessibilitySize
+            )
+            let metrics = WeatherBarMetrics(
+                blocks: store.snapshots.values.flatMap { $0.dayTimeline?.blocks ?? [] },
+                width: sizing.timelineWidth,
+                fontSize: timelineFontSize
+            )
+            TimelineView(.everyMinute) { context in
+                List {
+                    Section {
+                        if store.cities.isEmpty {
+                            Text("No Cities")
+                                .font(.weatherBody)
+                        } else {
                             ForEach(store.cities) { city in
                                 CityRow(
                                     city: city,
                                     snapshot: store.snapshots[city.id],
                                     isUnavailable: store.unavailableCityIDs.contains(city.id),
                                     now: context.date,
+                                    sizing: sizing,
                                     metrics: metrics
                                 )
                             }
                             .onDelete(perform: store.remove)
                             .onMove(perform: store.move)
                         }
-                        .onPreferenceChange(CityRowWidthKey.self) { cityRowWidth = $0 }
+                    } header: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("My Weather")
+                                .font(.weatherLargeTitle)
+                                .foregroundStyle(Color.primary)
+                            Text(lastUpdatedText(store.lastUpdated))
+                                .font(.weatherFootnote)
+                                .foregroundStyle(Color.secondary)
+                        }
+                        .textCase(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 6)
                     }
                 }
             }
+            .onPreferenceChange(CityRowWidthKey.self) { cityRowWidth = $0 }
             .navigationTitle("")
             .weatherInlineNavigationTitle()
             .toolbar {
@@ -97,12 +103,12 @@ struct ContentView: View {
     }
 }
 
-private struct CityRow: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+struct CityRow: View {
     let city: SavedCity
     let snapshot: WeatherSnapshot?
     let isUnavailable: Bool
     let now: Date
+    let sizing: CityWeatherSizing
     let metrics: WeatherBarMetrics
 
     var body: some View {
@@ -112,13 +118,15 @@ private struct CityRow: View {
                     cityName
                     cityClock
                 }
+                .fixedSize(horizontal: true, vertical: true)
                 VStack(alignment: .leading, spacing: 3) {
                     cityName
                     cityClock
                 }
+                .fixedSize(horizontal: false, vertical: true)
             }
             if let timeline = snapshot?.dayTimeline {
-                CityWeatherLayout(timelineWidth: metrics.width, stackVertically: dynamicTypeSize > .xLarge) {
+                CityWeatherLayout(sizing: sizing) {
                     weatherText
                         .accessibilitySortPriority(1)
                     DayTimelineView(timeline: timeline, now: now, metrics: metrics)
@@ -146,30 +154,25 @@ private struct CityRow: View {
             .font(.weatherFootnote)
             .monospacedDigit()
             .foregroundStyle(.secondary)
-            .fixedSize(horizontal: true, vertical: false)
+            .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel("Current Local Time: \(CityClock.text(at: now, timezone: city.timezone)), \(city.timezone)")
     }
 
     private var weatherText: some View {
         VStack(alignment: .leading, spacing: 5) {
             if let snapshot {
-                Text(wholeDegrees(snapshot.current.temperature))
+                let summary = WeatherSummaryText(snapshot)
+                Text(summary.current)
                     .font(.weatherSubheadline)
 
-                Text(
-                    "Low \(wholeDegrees(snapshot.today.minimumTemperature)) · " +
-                    "High \(wholeDegrees(snapshot.today.maximumTemperature))"
-                )
+                Text(summary.lowHigh)
                 .font(.weatherSubheadline)
 
-                Text(
-                    "Humidity \(snapshot.current.humidity)% · " +
-                    snapshot.today.condition.rawValue
-                )
+                Text(summary.humidityCondition)
                     .font(.weatherSubheadline)
                     .foregroundStyle(.secondary)
 
-                Text(snapshot.today.precipitation.label)
+                Text(summary.precipitation)
                     .font(.weatherSubheadline)
                     .foregroundStyle(.secondary)
             } else if isUnavailable {
@@ -184,6 +187,21 @@ private struct CityRow: View {
     }
 }
 
+struct WeatherSummaryText {
+    let current: String
+    let lowHigh: String
+    let humidityCondition: String
+    let precipitation: String
+    var lines: [String] { [current, lowHigh, humidityCondition, precipitation] }
+
+    init(_ snapshot: WeatherSnapshot) {
+        current = wholeDegrees(snapshot.current.temperature)
+        lowHigh = "Low \(wholeDegrees(snapshot.today.minimumTemperature)) · High \(wholeDegrees(snapshot.today.maximumTemperature))"
+        humidityCondition = "Humidity \(snapshot.current.humidity)% · \(snapshot.today.condition.rawValue)"
+        precipitation = snapshot.today.precipitation.label
+    }
+}
+
 private struct CityRowWidthKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
 
@@ -194,29 +212,29 @@ private struct CityRowWidthKey: PreferenceKey {
     }
 }
 
-private struct AboutView: View {
+struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
     let lastUpdated: Date?
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Nikhil Sharma")
-                    .font(.weatherHeadline)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Nikhil Sharma")
+                        .font(.weatherHeadline)
 
-                Text("Built with help from ChatGPT models.")
-                    .font(.weatherBody)
+                    Text("Built with help from ChatGPT models.")
+                        .font(.weatherBody)
 
-                Divider()
+                    Divider()
 
-                Text(lastUpdatedText(lastUpdated))
-                    .font(.weatherSubheadline)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
+                    Text(lastUpdatedText(lastUpdated))
+                        .font(.weatherSubheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
             .navigationTitle("")
             .weatherInlineNavigationTitle()
             .toolbar {

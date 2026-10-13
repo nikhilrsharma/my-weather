@@ -24,12 +24,15 @@ struct AddCityView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
                         .background(.secondary.opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
+                        .frame(minWidth: 100)
+                        .layoutPriority(1)
 
                     if !query.isEmpty {
                         Button("Clear") {
                             query = ""
                         }
                         .font(.weatherSubheadline)
+                        .fixedSize()
                     }
                 }
                 .padding(.horizontal, 16)
@@ -77,6 +80,7 @@ struct AddCityView: View {
                                     }
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(.vertical, 3)
                             }
                             .disabled(store.contains(city) || store.isRefreshing)

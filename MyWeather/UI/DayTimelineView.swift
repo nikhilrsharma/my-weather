@@ -13,6 +13,7 @@ struct WeatherBarMetrics {
     let leadingInset: CGFloat
     let trailingInset: CGFloat
     let dotDiameter: CGFloat
+    let stacksText: Bool
 
     init(blocks: [DayWeatherBlock], width: CGFloat, fontSize: CGFloat) {
         self.width = width
@@ -28,13 +29,23 @@ struct WeatherBarMetrics {
         let labelFont = CTFontCreateWithName("Verdana" as CFString, fontSize, nil)
         let available = max(1, width - leadingInset - trailingInset - dotDiameter - 2 * gap)
         let widestTime = blocks.map { Self.size($0.timeLabel, font: timeFont, width: 10_000).width }.max() ?? 0
-        let measuredTimeWidth = min(max(44 * scale, ceil(widestTime)), available * 0.48)
-        let measuredLabelWidth = max(1, available - measuredTimeWidth)
+        let horizontalTimeWidth = min(max(44 * scale, ceil(widestTime)), available * 0.48)
+        let horizontalLabelWidth = max(1, available - horizontalTimeWidth)
+        let widestWord = blocks.flatMap { $0.label.split(whereSeparator: { $0.isWhitespace || $0 == "/" }) }
+            .map { Self.size(String($0), font: labelFont, width: 10_000).width }.max() ?? 0
+        // At very large text sizes, use the full bar for each line before
+        // breaking a word or squeezing the time into an unreadable column.
+        let shouldStackText = ceil(widestTime) > horizontalTimeWidth || ceil(widestWord) > horizontalLabelWidth
+        stacksText = shouldStackText
+        let measuredTimeWidth = shouldStackText ? available + gap : horizontalTimeWidth
+        let measuredLabelWidth = shouldStackText ? available + gap : horizontalLabelWidth
         timeWidth = measuredTimeWidth
         labelWidth = measuredLabelWidth
+        let textGap = gap
         let contentHeight = blocks.map {
-            max(Self.size($0.timeLabel, font: timeFont, width: measuredTimeWidth).height,
-                Self.size($0.label, font: labelFont, width: measuredLabelWidth).height)
+            let timeHeight = Self.size($0.timeLabel, font: timeFont, width: measuredTimeWidth).height
+            let labelHeight = Self.size($0.label, font: labelFont, width: measuredLabelWidth).height
+            return shouldStackText ? timeHeight + textGap + labelHeight : max(timeHeight, labelHeight)
         }.max() ?? 0
         height = max(28 * scale, ceil(contentHeight) + 12 * scale)
     }
@@ -46,6 +57,35 @@ struct WeatherBarMetrics {
             framesetter, CFRange(location: 0, length: 0), nil,
             CGSize(width: width, height: .greatestFiniteMagnitude), nil
         )
+    }
+
+    static func naturalTextWidth(_ strings: [String], fontSize: CGFloat) -> CGFloat {
+        let font = CTFontCreateWithName("Verdana" as CFString, fontSize, nil)
+        return ceil(strings.map { size($0, font: font, width: 10_000).width }.max() ?? 0)
+    }
+}
+
+/// Shared by every city. Reserve only the width the weather text needs, then
+/// give the remaining row to the timeline. Stack before either column is cramped.
+struct CityWeatherSizing {
+    static let spacing: CGFloat = 16
+    let rowWidth: CGFloat
+    let preferredTextWidth: CGFloat
+    let minimumTimelineWidth: CGFloat
+    let forceStacked: Bool
+
+    var isStacked: Bool {
+        forceStacked || rowWidth < preferredTextWidth + minimumTimelineWidth + Self.spacing
+    }
+
+    var textWidth: CGFloat { isStacked ? rowWidth : preferredTextWidth }
+    var timelineWidth: CGFloat {
+        isStacked ? rowWidth : rowWidth - preferredTextWidth - Self.spacing
+    }
+
+    func fitting(_ width: CGFloat) -> Self {
+        Self(rowWidth: max(1, width), preferredTextWidth: preferredTextWidth,
+             minimumTimelineWidth: minimumTimelineWidth, forceStacked: forceStacked)
     }
 }
 
@@ -64,14 +104,18 @@ struct DayTimelineView: View {
                 .accessibilityLabel("Daily weather for \(timeline.dateLabel), times in \(timeline.timezone)")
 
             ForEach(timeline.blocks) { block in
-                HStack(alignment: .center, spacing: metrics.gap) {
-                    Text(block.timeLabel)
-                        .monospacedDigit()
-                        .fontWeight(.bold)
-                        .frame(width: metrics.timeWidth, alignment: .leading)
-
-                    Text(block.label)
-                        .frame(width: metrics.labelWidth, alignment: .leading)
+                Group {
+                    if metrics.stacksText {
+                        VStack(alignment: .leading, spacing: metrics.gap) {
+                            barTime(block)
+                            barLabel(block)
+                        }
+                    } else {
+                        HStack(alignment: .center, spacing: metrics.gap) {
+                            barTime(block)
+                            barLabel(block)
+                        }
+                    }
                 }
                 .font(.custom("Verdana", fixedSize: metrics.fontSize))
                 .fixedSize(horizontal: false, vertical: true)
@@ -98,6 +142,18 @@ struct DayTimelineView: View {
             }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private func barTime(_ block: DayWeatherBlock) -> some View {
+        Text(block.timeLabel)
+            .monospacedDigit()
+            .fontWeight(.bold)
+            .frame(width: metrics.timeWidth, alignment: .leading)
+    }
+
+    private func barLabel(_ block: DayWeatherBlock) -> some View {
+        Text(block.label)
+            .frame(width: metrics.labelWidth, alignment: .leading)
     }
 }
 
@@ -143,34 +199,30 @@ private extension DayWeatherBlock {
 /// Uses the right-hand column when it fits, and stacks for small windows or
 /// larger Dynamic Type. Both columns are measured at their actual widths.
 struct CityWeatherLayout: Layout {
-    let timelineWidth: CGFloat
-    let stackVertically: Bool
-    private let spacing: CGFloat = 12
+    let sizing: CityWeatherSizing
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? 360
-        let stacked = stackVertically || width < timelineWidth + 120 + spacing
-        let text = subviews[0].sizeThatFits(.init(width: stacked ? width : width - timelineWidth - spacing, height: nil))
-        let timeline = subviews[1].sizeThatFits(.init(width: min(width, timelineWidth), height: nil))
-        return CGSize(width: width, height: stacked ? text.height + spacing + timeline.height : max(text.height, timeline.height))
+        let fit = sizing.fitting(proposal.width ?? sizing.rowWidth)
+        let text = subviews[0].sizeThatFits(.init(width: fit.textWidth, height: nil))
+        let timeline = subviews[1].sizeThatFits(.init(width: fit.timelineWidth, height: nil))
+        return CGSize(width: fit.rowWidth, height: fit.isStacked
+            ? text.height + CityWeatherSizing.spacing + timeline.height : max(text.height, timeline.height))
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let stacked = stackVertically || bounds.width < timelineWidth + 120 + spacing
-        let textWidth = stacked ? bounds.width : bounds.width - timelineWidth - spacing
-        let textSize = subviews[0].sizeThatFits(.init(width: textWidth, height: nil))
+        let fit = sizing.fitting(bounds.width)
+        let textSize = subviews[0].sizeThatFits(.init(width: fit.textWidth, height: nil))
         subviews[0].place(
             at: CGPoint(x: bounds.minX, y: bounds.minY),
-            proposal: .init(width: textWidth, height: textSize.height)
+            proposal: .init(width: fit.textWidth, height: textSize.height)
         )
-        let chartWidth = min(bounds.width, timelineWidth)
-        let chartSize = subviews[1].sizeThatFits(.init(width: chartWidth, height: nil))
+        let chartSize = subviews[1].sizeThatFits(.init(width: fit.timelineWidth, height: nil))
         subviews[1].place(
             at: CGPoint(
-                x: stacked ? bounds.minX : bounds.maxX - chartWidth,
-                y: stacked ? bounds.minY + textSize.height + spacing : bounds.minY
+                x: fit.isStacked ? bounds.minX : bounds.maxX - fit.timelineWidth,
+                y: fit.isStacked ? bounds.minY + textSize.height + CityWeatherSizing.spacing : bounds.minY
             ),
-            proposal: .init(width: chartWidth, height: chartSize.height)
+            proposal: .init(width: fit.timelineWidth, height: chartSize.height)
         )
     }
 }

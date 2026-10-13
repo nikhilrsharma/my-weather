@@ -4,11 +4,13 @@ A small, text-first personal weather app for iPhone, iPad, and Mac. For up to fi
 
 The complete portfolio product requirements document is available at [docs/My_Weather_Portfolio_PRD.pdf](docs/My_Weather_Portfolio_PRD.pdf).
 
-## Current version: 1.5.0 (build 7)
+## Current version: 1.5.1 (build 8)
 
 - City-local 24-hour clocks next to city names, including the relevant time zone (for example, **Mumbai 03:15 IST**).
 - A red **Now** dot centered inside the current weather bar, fixed near the right edge with a small gap. Dots line up vertically; they are not progress indicators.
-- Equal bar widths and heights across every saved city. Shared sizing accommodates longer labels and larger text without changing individual bar sizes.
+- Equal bar widths and heights across every saved city. Bars now fill their available horizontal space, leaving the normal row margin at the right edge.
+- Responsive layout: wider windows place bars beside weather values; compact widths and accessibility text sizes put full-width bars below. Content reflows after rotation or resizing, without shrinking the user's chosen text size.
+- Long city names and clocks move onto separate lines when needed. At large text sizes, time and condition can stack inside every bar to avoid cramped columns or mid-word breaks. Main and About content scroll on short screens.
 - Compact daily weather blocks with readable time ranges and gradients around light changes.
 - Consistent capitalization across short interface labels, including **Low Light**, **Sun / Cloud**, and **Last Updated**.
 - Existing city lists and cached weather remain compatible. No additional permissions, dependencies, or background fetching.
@@ -21,7 +23,7 @@ City clocks and **Now** dots update locally each minute, without fetching weathe
 
 - Adjacent similar hours are combined. Mixed-period labels prioritize higher-severity weather rather than describing the whole period as sunny. Rain, snow, freezing rain, fog, and storms have dedicated categories, including at night.
 - **Night**, **Dawn**, **Sunny**, **Sun / Cloud**, **Cloudy**, **Low Light**, and **Dusk** use distinct colors and gradients. Light transitions are approximate hourly summaries around forecast sunrise/sunset, not exact astronomical twilight times.
-- These are native SwiftUI views with text and VoiceOver labels, not downloaded images. Larger text sizes and narrow windows stack the blocks below the city values.
+- These are native SwiftUI views with text and VoiceOver labels, not downloaded images. The layout measures weather text before choosing columns, gives spare width to the bars, and keeps all bars equally sized. Larger text sizes and narrow windows stack the blocks below the city values.
 - Blocks are cached with each weather snapshot and stay visible offline. When upgrading from a version without blocks, press **Refresh** once to fetch the required hourly data.
 - One combined forecast request per city includes current and daily fields, hourly weather codes/daylight flags, and sunrise/sunset. A day of padding on each side covers local daylight-saving boundaries; only the selected local day is displayed.
 
@@ -54,7 +56,9 @@ The Mac build uses App Sandbox with outgoing network access as its only addition
 - In Xcode, choose **Product → Test**.
 - The core tests can also run from Terminal with `swift test` in this folder.
 
-Version 1.5.0 validation: **34 core tests** and **36 iOS simulator tests**, including weather categories, mixed periods, local days across daylight-saving changes, city-clock offsets and abbreviations, midnight and Now boundaries, stale-day marker suppression, cache immutability, and shared bar sizing. Signed iPhone, unsigned public-source iOS, and native Mac Release builds were also validated.
+Version 1.5.1 validation: **34 core tests**, the **43-test iOS suite on both iPhone and iPad simulators**, and **41 Mac tests**, including weather categories, local daylight-saving days, city clocks, Now boundaries, cache compatibility, full-width bar allocation, resize round trips, shared sizing, and large-text reflow. The iOS tests produce reviewable screenshots at small-phone, phone, landscape, and tablet widths, plus the largest Dynamic Type setting and the main/search/About screens. Signed iPhone, unsigned public-source iOS, and native Mac Release builds were also validated.
+
+Necessary wrapping and vertical scrolling are intentional on small screens and at larger text sizes. These checks do not constitute exhaustive testing of every device, OS version, or accessibility configuration.
 
 ## Credits
 

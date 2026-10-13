@@ -53,6 +53,12 @@ struct MyWeatherApp: App {
                 .environmentObject(store)
                 .font(.weatherBody)
                 .preferredColorScheme(.dark)
+                #if os(macOS)
+                .frame(minWidth: 320, minHeight: 300)
+                #endif
         }
+        #if os(macOS)
+        .windowResizability(.contentMinSize)
+        #endif
     }
 }

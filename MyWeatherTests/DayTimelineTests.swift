@@ -1,5 +1,9 @@
 import XCTest
 @testable import MyWeatherCore
+#if !SWIFT_PACKAGE && canImport(UIKit)
+import SwiftUI
+import UIKit
+#endif
 
 final class DayTimelineTests: XCTestCase {
     func testClearDayMatchesSixReadableLightPeriods() throws {
@@ -280,6 +284,57 @@ final class DayTimelineTests: XCTestCase {
     }
 
     #if !SWIFT_PACKAGE
+    func testResponsiveColumnsUseEveryAvailablePoint() {
+        for width in [240.0, 280, 335, 362, 390, 664, 704, 984, 1_400] {
+            let sizing = CityWeatherSizing(rowWidth: width, preferredTextWidth: 250,
+                                           minimumTimelineWidth: 210, forceStacked: false)
+            if sizing.isStacked {
+                XCTAssertEqual(sizing.timelineWidth, width)
+                XCTAssertEqual(sizing.textWidth, width)
+            } else {
+                XCTAssertEqual(sizing.textWidth + CityWeatherSizing.spacing + sizing.timelineWidth, width)
+                XCTAssertGreaterThanOrEqual(sizing.timelineWidth, 210)
+                XCTAssertEqual(sizing.textWidth, 250)
+            }
+        }
+    }
+
+    func testWiderWindowsExpandBarsInsteadOfLeavingUnusedSpace() {
+        let sizing = CityWeatherSizing(rowWidth: 600, preferredTextWidth: 250,
+                                       minimumTimelineWidth: 210, forceStacked: false)
+        XCTAssertEqual(sizing.fitting(1_000).timelineWidth - sizing.timelineWidth, 400)
+        XCTAssertTrue(sizing.fitting(320).isStacked)
+        XCTAssertEqual(sizing.fitting(320).timelineWidth, 320)
+        XCTAssertEqual(sizing.fitting(320).fitting(600).timelineWidth, sizing.timelineWidth)
+    }
+
+    func testAccessibilityTextAlwaysGetsFullWidthAndSharedBarHeight() throws {
+        let blocks = try XCTUnwrap(snapshot(fixture()).dayTimeline).blocks
+        for width in [240.0, 320, 704, 984] {
+            let sizing = CityWeatherSizing(rowWidth: width, preferredTextWidth: 600,
+                                           minimumTimelineWidth: 600, forceStacked: true)
+            XCTAssertTrue(sizing.isStacked)
+            XCTAssertEqual(sizing.timelineWidth, width)
+            let metrics = WeatherBarMetrics(blocks: blocks, width: sizing.timelineWidth, fontSize: 34)
+            XCTAssertEqual(metrics.width, width)
+            XCTAssertGreaterThan(metrics.height, 0)
+            if metrics.stacksText {
+                XCTAssertEqual(metrics.labelWidth + 34, width, accuracy: 0.01)
+            } else {
+                XCTAssertEqual(metrics.timeWidth + metrics.labelWidth + 41, width, accuracy: 0.01)
+            }
+        }
+    }
+
+    func testWeatherTextMeasurementKeepsCompleteLinesTogether() {
+        let strings = ["Low -20°C · High 12°C", "Humidity 100% · Mix of Sun and Clouds", "Chance of Precipitation 100%"]
+        let normal = WeatherBarMetrics.naturalTextWidth(strings, fontSize: 13)
+        let larger = WeatherBarMetrics.naturalTextWidth(strings, fontSize: 26)
+        XCTAssertGreaterThan(normal, 200)
+        XCTAssertGreaterThan(larger, normal * 1.9)
+        XCTAssertEqual(WeatherBarMetrics.naturalTextWidth([], fontSize: 13), 0)
+    }
+
     func testSharedBarMetricsReserveTextAndFixedMarkerSpaceAtAllTextSizes() throws {
         let timeline = try XCTUnwrap(snapshot(fixture()).dayTimeline)
         let longBlock = DayWeatherBlock(
@@ -291,14 +346,137 @@ final class DayTimelineTests: XCTestCase {
             let metrics = WeatherBarMetrics(blocks: timeline.blocks + [longBlock], width: width, fontSize: size)
             XCTAssertEqual(metrics.width, width)
             XCTAssertGreaterThanOrEqual(metrics.height, 28 * size / 11)
-            XCTAssertEqual(metrics.timeWidth + metrics.labelWidth + metrics.leadingInset
-                + metrics.trailingInset + metrics.dotDiameter + 2 * metrics.gap, width, accuracy: 0.01)
+            let textWidth = metrics.stacksText ? metrics.labelWidth : metrics.timeWidth + metrics.gap + metrics.labelWidth
+            XCTAssertEqual(textWidth + metrics.leadingInset + metrics.trailingInset
+                + metrics.dotDiameter + metrics.gap, width, accuracy: 0.01)
             XCTAssertGreaterThan(metrics.labelWidth, 0)
             XCTAssertEqual(metrics.trailingInset, 10)
             XCTAssertEqual(metrics.dotDiameter, 9)
             let shortOnly = WeatherBarMetrics(blocks: timeline.blocks, width: width, fontSize: size)
             XCTAssertGreaterThanOrEqual(metrics.height, shortOnly.height)
         }
+    }
+
+    func testNarrowBarsStackTextBeforeBreakingWeatherWords() throws {
+        let block = DayWeatherBlock(start: Date(), end: Date().addingTimeInterval(3_600),
+            timeLabel: "06–07", accessibleTimeLabel: "Six to Seven", categories: [.nightDrizzle, .ice])
+        let narrow = WeatherBarMetrics(blocks: [block], width: 280, fontSize: 34)
+        XCTAssertTrue(narrow.stacksText)
+        XCTAssertEqual(narrow.timeWidth, narrow.labelWidth)
+        XCTAssertGreaterThan(narrow.labelWidth, WeatherBarMetrics.naturalTextWidth(["Freezing", "Drizzle"], fontSize: 34))
+        let wide = WeatherBarMetrics(blocks: [block], width: 700, fontSize: 11)
+        XCTAssertFalse(wide.stacksText)
+    }
+    #endif
+
+    #if !SWIFT_PACKAGE && canImport(UIKit)
+    @MainActor
+    func testResponsiveCityRowRenderMatrix() throws {
+        let base = try snapshot(fixture())
+        let timeline = try XCTUnwrap(base.dayTimeline)
+        let extra = DayWeatherBlock(start: timeline.blocks[1].start, end: timeline.blocks[1].end,
+                                   timeLabel: "06–07", accessibleTimeLabel: "Six to Seven",
+                                   categories: [.nightDrizzle, .ice])
+        var blocks = timeline.blocks
+        blocks[1] = extra
+        let value = WeatherSnapshot(current: base.current, today: base.today,
+            dayTimeline: DayTimeline(dateLabel: timeline.dateLabel, timezone: timeline.timezone, blocks: blocks))
+        let city = SavedCity(id: 1, name: "Saint-Jean-sur-Richelieu", region: "Quebec", country: "Canada",
+                             latitude: 45.3, longitude: -73.3, timezone: "America/Toronto")
+        for (name, width, type, category) in [
+            ("small-phone", 280.0, DynamicTypeSize.large, UIContentSizeCategory.large),
+            ("phone", 362.0, .large, .large),
+            ("phone-landscape", 704.0, .large, .large),
+            ("tablet-portrait", 664.0, .large, .large),
+            ("tablet-landscape", 984.0, .large, .large),
+            ("small-accessibility", 280.0, .accessibility5, .accessibilityExtraExtraExtraLarge),
+            ("phone-accessibility", 362.0, .accessibility5, .accessibilityExtraExtraExtraLarge),
+            ("tablet-accessibility", 704.0, .accessibility5, .accessibilityExtraExtraExtraLarge)
+        ] {
+            let traits = UITraitCollection(preferredContentSizeCategory: category)
+            let fontSize = UIFontMetrics(forTextStyle: .footnote).scaledValue(for: 11, compatibleWith: traits)
+            let textSize = UIFontMetrics(forTextStyle: .subheadline).scaledValue(for: 13, compatibleWith: traits)
+            let sizing = CityWeatherSizing(rowWidth: width,
+                preferredTextWidth: WeatherBarMetrics.naturalTextWidth(WeatherSummaryText(value).lines, fontSize: textSize) + 2,
+                minimumTimelineWidth: 210 * fontSize / 11, forceStacked: type.isAccessibilitySize)
+            let metrics = WeatherBarMetrics(blocks: blocks, width: sizing.timelineWidth, fontSize: fontSize)
+            let view = CityRow(city: city, snapshot: value, isUnavailable: false,
+                              now: extra.start, sizing: sizing, metrics: metrics)
+                .frame(width: width).padding(20).background(Color.black)
+                .environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, type)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 1
+            let image = try XCTUnwrap(renderer.uiImage)
+            XCTAssertEqual(image.size.width, width + 40, accuracy: 1)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "responsive-row-\(name)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+
+    @MainActor
+    func testResponsiveMainSearchAndAboutScreens() async throws {
+        let suite = "MyWeatherResponsiveTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = CityRepository(defaults: defaults)
+        let value = try snapshot(fixture())
+        let cities = ["Montreal", "Saint-Jean-sur-Richelieu", "Mumbai"].enumerated().map { index, name in
+            SavedCity(id: index, name: name, region: "", country: "", latitude: 0, longitude: 0,
+                      timezone: index == 2 ? "Asia/Kolkata" : "America/Toronto")
+        }
+        try repository.save(cities)
+        try repository.saveWeatherState(StoredWeatherState(
+            snapshots: Dictionary(uniqueKeysWithValues: cities.map { ($0.id, value) }), lastUpdated: Date()))
+        let store = WeatherStore(repository: repository)
+        let controller = UIHostingController(rootView: AnyView(EmptyView()))
+        let window = UIWindow(frame: UIScreen.main.bounds)
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        // Reuse the same host while changing size, exercising rotation/window resize.
+        for (name, width, height, type) in [
+            ("small-phone", 320.0, 568.0, DynamicTypeSize.large),
+            ("phone", 402.0, 874.0, .large),
+            ("landscape", 874.0, 402.0, .large),
+            ("tablet", 744.0, 1_024.0, .large),
+            ("wide-tablet", 1_024.0, 744.0, .large),
+            ("phone-again", 402.0, 874.0, .large),
+            ("largest-text", 402.0, 874.0, .accessibility5)
+        ] {
+            controller.rootView = AnyView(ContentView().environmentObject(store)
+                .environment(\.dynamicTypeSize, type).environment(\.colorScheme, .dark)
+                .frame(width: width, height: height))
+            controller.view.frame = CGRect(x: 0, y: 0, width: width, height: height)
+            try await Task.sleep(for: .milliseconds(200))
+            controller.view.layoutIfNeeded()
+            attachScreen(controller.view, name: "responsive-main-\(name)")
+        }
+        for (name, screen) in [
+            ("about", AnyView(AboutView(lastUpdated: Date()))),
+            ("search", AnyView(AddCityView().environmentObject(store)))
+        ] {
+            controller.rootView = AnyView(screen.environment(\.dynamicTypeSize, .accessibility5)
+                .environment(\.colorScheme, .dark).frame(width: 402, height: 874))
+            controller.view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+            try await Task.sleep(for: .milliseconds(200))
+            controller.view.layoutIfNeeded()
+            attachScreen(controller.view, name: "responsive-\(name)-largest-text")
+        }
+        XCTAssertEqual(repository.load(), cities)
+        XCTAssertEqual(repository.loadWeatherState().snapshots.count, 3)
+    }
+
+    @MainActor
+    private func attachScreen(_ view: UIView, name: String) {
+        let image = UIGraphicsImageRenderer(size: view.bounds.size).image { _ in
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
     #endif
 
