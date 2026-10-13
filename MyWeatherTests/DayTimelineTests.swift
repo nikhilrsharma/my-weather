@@ -216,6 +216,92 @@ final class DayTimelineTests: XCTestCase {
         try ForecastBuilder.build(from: JSONSerialization.data(withJSONObject: data))
     }
 
+    func testCityClocksShowSameInstantInTheirOwnTimezones() throws {
+        let date = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-13T17:45:00Z"))
+        XCTAssertEqual(CityClock.text(at: date, timezone: "America/Toronto"), "13:45 EDT")
+        XCTAssertEqual(CityClock.text(at: date, timezone: "Asia/Kolkata"), "23:15 IST")
+        XCTAssertTrue(CityClock.text(at: date, timezone: "Asia/Kathmandu").hasPrefix("23:30 "))
+    }
+
+    func testCityClockChangesDateAndHonorsMidnightWithoutUsing24() throws {
+        let date = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-13T18:30:00Z"))
+        XCTAssertEqual(CityClock.text(at: date, timezone: "Asia/Kolkata"), "00:00 IST")
+        XCTAssertEqual(CityClock.text(at: date.addingTimeInterval(11_700), timezone: "Asia/Kolkata"), "03:15 IST")
+    }
+
+    func testCityClockChangesAbbreviationAcrossDaylightSavingTime() throws {
+        let first = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-01T05:30:00Z"))
+        XCTAssertEqual(CityClock.text(at: first, timezone: "America/Toronto"), "01:30 EDT")
+        XCTAssertEqual(CityClock.text(at: first.addingTimeInterval(3_600), timezone: "America/Toronto"), "01:30 EST")
+        let spring = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-03-08T06:59:00Z"))
+        XCTAssertEqual(CityClock.text(at: spring, timezone: "America/Toronto"), "01:59 EST")
+        XCTAssertEqual(CityClock.text(at: spring.addingTimeInterval(60), timezone: "America/Toronto"), "03:00 EDT")
+    }
+
+    func testInvalidCityTimezoneNeverFallsBackToDeviceTime() {
+        XCTAssertEqual(CityClock.text(at: Date(), timezone: "invalid/timezone"), "Time Unavailable")
+    }
+
+    func testNowDotUsesExactlyOneBlockAndMovesAtItsBoundary() throws {
+        let timeline = try XCTUnwrap(snapshot(fixture()).dayTimeline)
+        for block in timeline.blocks {
+            XCTAssertEqual(timeline.currentBlockID(at: block.start), block.id)
+            XCTAssertEqual(timeline.currentBlockID(at: block.end.addingTimeInterval(-0.001)), block.id)
+            XCTAssertNotEqual(timeline.currentBlockID(at: block.end), block.id)
+        }
+        for (left, right) in zip(timeline.blocks, timeline.blocks.dropFirst()) {
+            XCTAssertEqual(timeline.currentBlockID(at: left.end), right.id)
+        }
+    }
+
+    func testNowDotIsHiddenOutsideCachedDayAndForEmptyTimelines() throws {
+        let timeline = try XCTUnwrap(snapshot(fixture()).dayTimeline)
+        XCTAssertNil(timeline.currentBlockID(at: timeline.blocks.first!.start.addingTimeInterval(-1)))
+        XCTAssertNil(timeline.currentBlockID(at: timeline.blocks.last!.end))
+        XCTAssertNil(timeline.currentBlockID(at: timeline.blocks.last!.end.addingTimeInterval(86_400)))
+        XCTAssertNil(DayTimeline(dateLabel: "", timezone: "UTC", blocks: []).currentBlockID(at: Date()))
+    }
+
+    func testNowDotHandlesDSTAndDoesNotMutateCachedWeather() throws {
+        for (date, zone) in [("2026-11-01", "America/Toronto"), ("2026-10-04", "Australia/Lord_Howe")] {
+            let value = try snapshot(fixture(day: date, zone: zone))
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            let original = try encoder.encode(value)
+            let timeline = try XCTUnwrap(value.dayTimeline)
+            var now = timeline.blocks.first!.start
+            while now < timeline.blocks.last!.end {
+                XCTAssertNotNil(timeline.currentBlockID(at: now))
+                _ = CityClock.text(at: now, timezone: zone)
+                now = now.addingTimeInterval(60)
+            }
+            XCTAssertEqual(try encoder.encode(value), original)
+        }
+    }
+
+    #if !SWIFT_PACKAGE
+    func testSharedBarMetricsReserveTextAndFixedMarkerSpaceAtAllTextSizes() throws {
+        let timeline = try XCTUnwrap(snapshot(fixture()).dayTimeline)
+        let longBlock = DayWeatherBlock(
+            start: Date(), end: Date().addingTimeInterval(3_600),
+            timeLabel: "01:00 EDT–01:00 EST", accessibleTimeLabel: "Repeated Hour",
+            categories: [.nightDrizzle, .ice]
+        )
+        for (width, size) in [(174.0, 11.0), (280.0, 22.0), (280.0, 34.0)] {
+            let metrics = WeatherBarMetrics(blocks: timeline.blocks + [longBlock], width: width, fontSize: size)
+            XCTAssertEqual(metrics.width, width)
+            XCTAssertGreaterThanOrEqual(metrics.height, 28 * size / 11)
+            XCTAssertEqual(metrics.timeWidth + metrics.labelWidth + metrics.leadingInset
+                + metrics.trailingInset + metrics.dotDiameter + 2 * metrics.gap, width, accuracy: 0.01)
+            XCTAssertGreaterThan(metrics.labelWidth, 0)
+            XCTAssertEqual(metrics.trailingInset, 10)
+            XCTAssertEqual(metrics.dotDiameter, 9)
+            let shortOnly = WeatherBarMetrics(blocks: timeline.blocks, width: width, fontSize: size)
+            XCTAssertGreaterThanOrEqual(metrics.height, shortOnly.height)
+        }
+    }
+    #endif
+
     private func assertCoverage(_ timeline: DayTimeline, hours: Double, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertLessThanOrEqual(timeline.blocks.count, 6, file: file, line: line)
         XCTAssertFalse(timeline.blocks.isEmpty, file: file, line: line)

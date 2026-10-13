@@ -4,8 +4,11 @@ A small, text-first personal weather app for iPhone, iPad, and Mac. For up to fi
 
 The complete portfolio product requirements document is available at [docs/My_Weather_Portfolio_PRD.pdf](docs/My_Weather_Portfolio_PRD.pdf).
 
-## Current version: 1.4.1 (build 6)
+## Current version: 1.5.0 (build 7)
 
+- City-local 24-hour clocks next to city names, including the relevant time zone (for example, **Mumbai 03:15 IST**).
+- A red **Now** dot centered inside the current weather bar, fixed near the right edge with a small gap. Dots line up vertically; they are not progress indicators.
+- Equal bar widths and heights across every saved city. Shared sizing accommodates longer labels and larger text without changing individual bar sizes.
 - Compact daily weather blocks with readable time ranges and gradients around light changes.
 - Consistent capitalization across short interface labels, including **Low Light**, **Sun / Cloud**, and **Last Updated**.
 - Existing city lists and cached weather remain compatible. No additional permissions, dependencies, or background fetching.
@@ -13,6 +16,8 @@ The complete portfolio product requirements document is available at [docs/My_We
 ## Daily weather blocks
 
 Each city has a compact stack of up to six colored periods beside its weather values. Times use a 24-hour clock in **that city's local time zone**; `24` means the midnight ending the day. The small date label identifies the cached forecast day. The main **Last Updated** timestamp uses the device's time zone.
+
+City clocks and **Now** dots update locally each minute, without fetching weather or changing **Last Updated**. Time zones follow daylight-saving changes automatically; India uses **IST**, while other zones show their short name or GMT offset. At a period boundary the dot moves to the next bar. If the saved forecast is from a different day, its values remain visible but no **Now** dot appears. Refresh manually to fetch the latest weather.
 
 - Adjacent similar hours are combined. Mixed-period labels prioritize higher-severity weather rather than describing the whole period as sunny. Rain, snow, freezing rain, fog, and storms have dedicated categories, including at night.
 - **Night**, **Dawn**, **Sunny**, **Sun / Cloud**, **Cloudy**, **Low Light**, and **Dusk** use distinct colors and gradients. Light transitions are approximate hourly summaries around forecast sunrise/sunset, not exact astronomical twilight times.
@@ -49,7 +54,7 @@ The Mac build uses App Sandbox with outgoing network access as its only addition
 - In Xcode, choose **Product → Test**.
 - The core tests can also run from Terminal with `swift test` in this folder.
 
-Version 1.4.1 validation: **27 core tests** and **28 iOS simulator tests**, including weather categories, mixed periods, full local days across daylight-saving changes, old-cache compatibility, and display-label capitalization. iOS and native Mac Release builds were also validated.
+Version 1.5.0 validation: **34 core tests** and **36 iOS simulator tests**, including weather categories, mixed periods, local days across daylight-saving changes, city-clock offsets and abbreviations, midnight and Now boundaries, stale-day marker suppression, cache immutability, and shared bar sizing. Signed iPhone, unsigned public-source iOS, and native Mac Release builds were also validated.
 
 ## Credits
 

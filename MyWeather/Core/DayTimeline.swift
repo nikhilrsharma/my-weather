@@ -76,6 +76,34 @@ public struct DayTimeline: Codable, Equatable, Sendable {
     public let dateLabel: String
     public let timezone: String
     public let blocks: [DayWeatherBlock]
+
+    /// Absolute intervals avoid confusing yesterday's cache or repeated DST hours
+    /// with the current period. Endpoints belong to the following block.
+    public func currentBlockID(at date: Date) -> Date? {
+        blocks.first { $0.start <= date && date < $0.end }?.id
+    }
+}
+
+public enum CityClock {
+    /// Uses the saved city zone, never the device zone or a forecast's fixed offset.
+    /// This is local formatting only; it does not refresh or mutate cached weather.
+    public static func text(at date: Date, timezone identifier: String) -> String {
+        guard let timezone = TimeZone(identifier: identifier) else { return "Time Unavailable" }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timezone
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        let time = String(format: "%02d:%02d", components.hour ?? 0, components.minute ?? 0)
+        let abbreviation: String
+        if identifier == "Asia/Kolkata" || identifier == "Asia/Calcutta" {
+            abbreviation = "IST"
+        } else {
+            let style: TimeZone.NameStyle = timezone.isDaylightSavingTime(for: date)
+                ? .shortDaylightSaving : .shortStandard
+            abbreviation = timezone.localizedName(for: style, locale: Locale(identifier: "en_US"))
+                ?? timezone.abbreviation(for: date) ?? identifier
+        }
+        return "\(time) \(abbreviation)"
+    }
 }
 
 // Accept the previous ISO date response as well as unambiguous Unix timestamps.

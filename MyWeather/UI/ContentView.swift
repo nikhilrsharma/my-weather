@@ -4,6 +4,9 @@ struct ContentView: View {
     @EnvironmentObject private var store: WeatherStore
     @State private var showingAddCity = false
     @State private var showingAbout = false
+    @State private var cityRowWidth: CGFloat = 0
+    @ScaledMetric(relativeTo: .footnote) private var timelineWidth = 174.0
+    @ScaledMetric(relativeTo: .footnote) private var timelineFontSize = 11.0
 
     var body: some View {
         NavigationStack {
@@ -30,16 +33,26 @@ struct ContentView: View {
                     }
                     Spacer()
                 } else {
-                    List {
-                        ForEach(store.cities) { city in
-                            CityRow(
-                                city: city,
-                                snapshot: store.snapshots[city.id],
-                                isUnavailable: store.unavailableCityIDs.contains(city.id)
-                            )
+                    let metrics = WeatherBarMetrics(
+                        blocks: store.snapshots.values.flatMap { $0.dayTimeline?.blocks ?? [] },
+                        width: cityRowWidth > 0 ? min(timelineWidth, cityRowWidth) : timelineWidth,
+                        fontSize: timelineFontSize
+                    )
+                    TimelineView(.everyMinute) { context in
+                        List {
+                            ForEach(store.cities) { city in
+                                CityRow(
+                                    city: city,
+                                    snapshot: store.snapshots[city.id],
+                                    isUnavailable: store.unavailableCityIDs.contains(city.id),
+                                    now: context.date,
+                                    metrics: metrics
+                                )
+                            }
+                            .onDelete(perform: store.remove)
+                            .onMove(perform: store.move)
                         }
-                        .onDelete(perform: store.remove)
-                        .onMove(perform: store.move)
+                        .onPreferenceChange(CityRowWidthKey.self) { cityRowWidth = $0 }
                     }
                 }
             }
@@ -86,32 +99,59 @@ struct ContentView: View {
 
 private struct CityRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .footnote) private var timelineWidth = 154.0
     let city: SavedCity
     let snapshot: WeatherSnapshot?
     let isUnavailable: Bool
+    let now: Date
+    let metrics: WeatherBarMetrics
 
     var body: some View {
-        Group {
+        VStack(alignment: .leading, spacing: 8) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    cityName
+                    cityClock
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    cityName
+                    cityClock
+                }
+            }
             if let timeline = snapshot?.dayTimeline {
-                CityWeatherLayout(timelineWidth: timelineWidth, stackVertically: dynamicTypeSize > .xLarge) {
+                CityWeatherLayout(timelineWidth: metrics.width, stackVertically: dynamicTypeSize > .xLarge) {
                     weatherText
                         .accessibilitySortPriority(1)
-                    DayTimelineView(timeline: timeline)
+                    DayTimelineView(timeline: timeline, now: now, metrics: metrics)
                 }
             } else {
                 weatherText
             }
         }
         .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            GeometryReader { geometry in
+                Color.clear.preference(key: CityRowWidthKey.self, value: geometry.size.width)
+            }
+        }
         .accessibilityElement(children: .contain)
+    }
+
+    private var cityName: some View {
+        Text(city.name).font(.weatherHeadline)
+    }
+
+    private var cityClock: some View {
+        Text(CityClock.text(at: now, timezone: city.timezone))
+            .font(.weatherFootnote)
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: true, vertical: false)
+            .accessibilityLabel("Current Local Time: \(CityClock.text(at: now, timezone: city.timezone)), \(city.timezone)")
     }
 
     private var weatherText: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(city.name)
-                .font(.weatherHeadline)
-
             if let snapshot {
                 Text(wholeDegrees(snapshot.current.temperature))
                     .font(.weatherSubheadline)
@@ -141,6 +181,16 @@ private struct CityRow: View {
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct CityRowWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        let next = nextValue()
+        guard next > 0 else { return }
+        value = value > 0 ? min(value, next) : next
     }
 }
 
