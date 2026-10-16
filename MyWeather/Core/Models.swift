@@ -178,10 +178,34 @@ public struct WeatherSnapshot: Codable, Equatable, Sendable {
     public let current: CurrentWeather
     public let today: TodayForecast
     public let dayTimeline: DayTimeline?
+    /// Optional so the installed app's existing weather cache remains readable.
+    public let forecastDays: [DailyForecast]?
 
-    public init(current: CurrentWeather, today: TodayForecast, dayTimeline: DayTimeline? = nil) {
+    public init(current: CurrentWeather, today: TodayForecast, dayTimeline: DayTimeline? = nil,
+                forecastDays: [DailyForecast]? = nil) {
         self.current = current
         self.today = today
         self.dayTimeline = dayTimeline
+        self.forecastDays = forecastDays
+    }
+}
+
+public struct DailyForecast: Codable, Equatable, Identifiable, Sendable {
+    public let date: Date
+    public let weather: TodayForecast
+    public let timeline: DayTimeline?
+    public var id: Date { date }
+
+    public init(date: Date, weather: TodayForecast, timeline: DayTimeline?) {
+        self.date = date
+        self.weather = weather
+        self.timeline = timeline
+    }
+
+    public func isToday(at now: Date, timezone: String) -> Bool {
+        guard let zone = TimeZone(identifier: timezone) else { return false }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        return calendar.isDate(date, inSameDayAs: now)
     }
 }

@@ -6,10 +6,10 @@ import UIKit
 #endif
 
 final class DayTimelineTests: XCTestCase {
-    func testClearDayMatchesSixReadableLightPeriods() throws {
+    func testClearDayUsesActualSuppliedSolarTimes() throws {
         let timeline = try XCTUnwrap(snapshot(fixture()).dayTimeline)
-        XCTAssertEqual(timeline.blocks.map(\.label), ["Night", "Dawn", "Sunny", "Low Light", "Dusk", "Night"])
-        XCTAssertEqual(timeline.blocks.map(\.timeLabel), ["00–06", "06–07", "07–17", "17–18", "18–19", "19–24"])
+        XCTAssertEqual(timeline.blocks.map(\.label), ["Night", "Sunny", "Night"])
+        XCTAssertEqual(timeline.blocks.map(\.timeLabel), ["00:00–06:45", "06:45–18:15", "18:15–24:00"])
         XCTAssertEqual(timeline.dateLabel, "13 Oct")
         XCTAssertEqual(timeline.timezone, "America/Toronto")
         assertCoverage(timeline, hours: 24)
@@ -26,16 +26,16 @@ final class DayTimelineTests: XCTestCase {
     func testLateRefreshStillShowsEntireDay() throws {
         let data = fixture(hour: 23)
         let timeline = try XCTUnwrap(snapshot(data).dayTimeline)
-        XCTAssertEqual(timeline.blocks.first?.timeLabel, "00–06")
-        XCTAssertEqual(timeline.blocks.last?.timeLabel, "19–24")
+        XCTAssertEqual(timeline.blocks.first?.timeLabel, "00:00–06:45")
+        XCTAssertEqual(timeline.blocks.last?.timeLabel, "18:15–24:00")
         assertCoverage(timeline, hours: 24)
     }
 
     func testSpringAndFallDSTCoverActualLocalDay() throws {
         for (date, hours) in [("2026-03-08", 23.0), ("2026-11-01", 25.0)] {
             let timeline = try XCTUnwrap(snapshot(fixture(day: date)).dayTimeline)
-            XCTAssertTrue(timeline.blocks.first!.timeLabel.hasPrefix("00–"))
-            XCTAssertTrue(timeline.blocks.last!.timeLabel.hasSuffix("–24"))
+            XCTAssertTrue(timeline.blocks.first!.timeLabel.hasPrefix("00"))
+            XCTAssertTrue(timeline.blocks.last!.timeLabel.hasSuffix("24:00"))
             assertCoverage(timeline, hours: hours)
         }
     }

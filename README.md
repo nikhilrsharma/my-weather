@@ -1,32 +1,55 @@
 # My Weather
 
-A small, text-first personal weather app for iPhone, iPad, and Mac. For up to five saved cities, its main screen shows current temperature in Celsius, today’s low and high, humidity, whole-day conditions, a clearly named precipitation chance, and compact daily weather blocks. Cities can be reordered and the order is saved. The interface uses Verdana, is always dark, and shows when weather was last updated. It does not fetch weather when the app opens: it immediately displays the last successfully refreshed values, then replaces them when **Refresh** is pressed or after a city is added.
+A small, text-first personal weather app for iPhone, iPad, and Mac. **Today** shows essential weather and compact daily weather blocks for up to five saved cities. **5-Day Forecast** shows today and the following four days with temperature values, condition badges, and full-day weather gradients. Both views keep the same city order. The interface uses Verdana and is always dark. It displays saved weather immediately and only fetches when **Refresh** is pressed on Today or after a city is added—not on launch, foreground, or switching views.
 
 The complete portfolio product requirements document is available at [docs/My_Weather_Portfolio_PRD.pdf](docs/My_Weather_Portfolio_PRD.pdf).
 
-## Current version: 1.5.2 (build 9)
+## Current version: 1.6.0 (build 10)
 
-- Current temperature sits next to the city name (for example, **Mumbai 25°C**). The city-local 24-hour clock and relevant time zone appear on the line below (for example, **03:15 IST**).
-- Daily conditions such as **Sunny**, **Rain**, and **Cloudy** appear in compact rounded badges. Weather-related colors, opaque dark fills, light text, and visible borders keep them readable in dark mode. Humidity remains plain text; only the daily condition gets a badge.
-- A red **Now** dot centered inside the current weather bar, fixed near the right edge with a small gap. Dots line up vertically; they are not progress indicators.
-- Equal bar widths and heights across every saved city. Bars now fill their available horizontal space, leaving the normal row margin at the right edge.
-- Responsive layout: wider windows place bars beside weather values; compact widths and accessibility text sizes put full-width bars below. Content reflows after rotation or resizing, without shrinking the user's chosen text size.
-- Long city names and temperatures move onto separate lines when needed. Humidity and condition stay inline when they fit; otherwise the badge moves below and its label wraps as needed. At large text sizes, time and condition can stack inside every bar. Main and About content scroll on short screens.
-- Compact daily weather blocks with readable time ranges and gradients around light changes.
-- Consistent capitalization across short interface labels, including **Low Light**, **Sun / Cloud**, and **Last Updated**.
-- Existing city lists and cached weather remain compatible. No additional permissions, dependencies, or background fetching.
+- Five compact forecast rows per city: a day/date, readable daily condition badge, minimum and maximum temperatures, and one full-day horizontal weather bar.
+- The approved two-icon switch uses the actual app icon for **Today** and a calendar for **5-Day Forecast**. Swipe left/right across the **My Weather** title area as an alternative.
+- Stable city identity/order and a spring transition between views, respecting the system's **Reduce Motion** setting.
+- Each day's gradient uses its own hourly forecast and actual supplied sunrise/sunset times. Transitions are not forced to 06:00 or other fixed daily cutoffs.
+- Today retains current temperature beside the city name, its local clock beneath, low/high, humidity, condition badge, precipitation chance, and labeled periods. No city-detail navigation returns.
+- Existing saved cities and weather remain compatible. No new permissions, dependencies, background tasks, or requests when switching views.
 
-## Daily weather blocks
+After updating from an older version, tap **Refresh** on Today once to load the new five-day data. Until then, existing weather stays visible and the forecast view explains how to load it.
+
+## Today: daily weather blocks
 
 Each city has a compact stack of up to six colored periods beside its weather values. Times use a 24-hour clock in **that city's local time zone**; `24` means the midnight ending the day. The small date label identifies the cached forecast day. The main **Last Updated** timestamp uses the device's time zone.
 
 City clocks and **Now** dots update locally each minute, without fetching weather or changing **Last Updated**. Time zones follow daylight-saving changes automatically; India uses **IST**, while other zones show their short name or GMT offset. At a period boundary the dot moves to the next bar. If the saved forecast is from a different day, its values remain visible but no **Now** dot appears. Refresh manually to fetch the latest weather.
 
 - Adjacent similar hours are combined. Mixed-period labels prioritize higher-severity weather rather than describing the whole period as sunny. Rain, snow, freezing rain, fog, and storms have dedicated categories, including at night.
-- **Night**, **Dawn**, **Sunny**, **Sun / Cloud**, **Cloudy**, **Low Light**, and **Dusk** use distinct colors and gradients. Light transitions are approximate hourly summaries around forecast sunrise/sunset, not exact astronomical twilight times.
+- Fresh data uses **Night**, **Sunny**, **Sun / Cloud**, **Cloudy**, and weather-event categories. Periods split at the provider's hourly boundaries and supplied sunrise/sunset. Older cached **Dawn**, **Low Light**, and **Dusk** categories still decode; fresh data does not invent twilight periods.
 - These are native SwiftUI views with text and VoiceOver labels, not downloaded images. The layout measures weather text before choosing columns, gives spare width to the bars, and keeps all bars equally sized. Larger text sizes and narrow windows stack the blocks below the city values.
 - Blocks are cached with each weather snapshot and stay visible offline. When upgrading from a version without blocks, press **Refresh** once to fetch the required hourly data.
-- One combined forecast request per city includes current and daily fields, hourly weather codes/daylight flags, and sunrise/sunset. A day of padding on each side covers local daylight-saving boundaries; only the selected local day is displayed.
+- One combined request per city supplies both views. `past_days=1` and `forecast_days=6` provide a padding day on either side of the five displayed dates, covering local daylight-saving boundaries.
+
+## 5-Day Forecast: full-day weather bars
+
+- A bar spans the city's local midnight to the next midnight. Its colors show the weather distribution **over time**, not a temperature scale. Short gradients soften actual boundaries without moving their stored times or claiming minute-precise weather forecasts.
+- Minimum temperature is on the left; maximum is on the right. The header states Celsius units. There is no **Low**, **High**, **Daily Range**, or **Now** text, and no city clock, timezone text, humidity, or precipitation probability in this view.
+- For today's cached snapshot, the current-temperature value sits above a red, white-outlined dot. Here the dot's horizontal position represents elapsed local-day time. On **Today**, the dot instead stays near the right edge of the active labeled block; these are intentionally different indicators using the same visual style.
+- Tracks share a 14-point height and equal widths, filling the space between the temperature values. Large text can move temperatures above the track. Condition badges reuse the existing dark-mode palette and full labels.
+- Exact hourly/solar periods are retained before Today's compact list is reduced to at most six blocks. Each forecast date uses its own periods, including daylight-saving and half-hour transitions. A DST day receives its own clock ticks when a normal 24-hour axis would be misleading.
+- If hourly data is unavailable, daily temperatures remain visible with a neutral bar and **Hourly Unavailable**. If fewer than five dates arrive, the app indicates the missing days rather than inventing them.
+
+The five dated rows remain the last successful snapshot until refresh; they do not automatically roll forward after midnight. Old dates stay visible. The current-temperature annotation and dot appear only when the first cached forecast date is still today. A moving dot does not mean that weather has just been refreshed. **Refresh** and city editing are available on Today only.
+
+## Data structure
+
+| Model | Contents |
+| --- | --- |
+| `SavedCity` | Provider ID, name, region/country, coordinates, IANA timezone. |
+| `WeatherSnapshot` | `current`, `today`, optional `dayTimeline`, optional `forecastDays`. |
+| `DailyForecast` | Local-midnight `date`, daily `weather` (min/max, condition, precipitation), optional `timeline`. |
+| `DayTimeline` | Date label, timezone, compact `blocks`, optional exact `periods`. |
+| `DayWeatherBlock` | Absolute start/end dates, visible and accessible time labels, weather categories. |
+| `StoredWeatherState` | Snapshots keyed by city ID plus the global `lastUpdated` date. |
+
+New fields are optional so earlier caches still decode. One combined HTTPS forecast request per city contains current temperature/humidity/code, hourly time/code/daylight flags, and daily time/min/max/code/precipitation probability/sunrise/sunset. Switching screens reads the same local snapshot.
 
 Forecast field definitions: [Open-Meteo documentation](https://open-meteo.com/en/docs).
 
@@ -57,9 +80,17 @@ The Mac build uses App Sandbox with outgoing network access as its only addition
 - In Xcode, choose **Product → Test**.
 - The core tests can also run from Terminal with `swift test` in this folder.
 
-Version 1.5.2 validation: **34 core tests**, the **48-test iOS suite on both iPhone and iPad simulators**, and **45 Mac tests**, including weather categories, local daylight-saving days, city clocks, Now boundaries, cache compatibility, full-width bar allocation, resize round trips, shared sizing, and large-text reflow. Badge tests cover every daily condition, at least **4.5:1 text-to-fill contrast**, at least **3:1 border-to-fill contrast**, and padding-aware column measurement. The iOS tests produce reviewable screenshots at small-phone, phone, landscape, and tablet widths, plus the largest Dynamic Type setting, all badges, missing/legacy weather, and the main/search/About screens. Signed iPhone, unsigned public-source iOS, and native Mac Release builds were also validated.
+Version 1.6.0 validation includes **41 core tests**, **59 iOS tests**, and **53 Mac tests**. Coverage includes five-day selection, distinct solar/hourly periods per date, gradient proportions, DST and half-hour changes, old/new cache compatibility, no fetching on view opening, failed-refresh cache retention, city order, and responsive layout. Existing badge tests check every daily condition, at least **4.5:1 text-to-fill contrast**, and at least **3:1 border-to-fill contrast**.
+
+The iOS suite produces screenshots at small-phone, phone, landscape, and tablet widths, including the largest Dynamic Type setting, Today/forecast screens, and missing hourly data. Live API smoke checks on October 16, 2026 returned five complete forecasts for Montreal and Mumbai. Version 1.6.0 was installed and launched on a physical iPhone; saved cities/order and cached weather matched byte for byte before and after installation. The sanitized public source separately passed the core and Mac test suites and all 59 iOS tests on both iPhone and iPad simulators, plus unsigned iOS and Mac Release builds, without personal signing credentials.
 
 Necessary wrapping and vertical scrolling are intentional on small screens and at larger text sizes. These checks do not constitute exhaustive testing of every device, OS version, or accessibility configuration.
+
+Known limits: the global **Last Updated** advances if any city succeeds, so another city may retain older data; per-city freshness and a stale/offline banner are not implemented. Full VoiceOver and swipe-animation interaction coverage, multi-city partial-failure tests, and continuous live-provider checks remain follow-ups. The public documentation credits data providers; visible in-app provider attribution remains a follow-up before public binary distribution.
+
+## App size
+
+The unsigned iOS Release app built from this public source on October 16, 2026 contains **3,344,727 logical file bytes: 3.34 MB (3.19 MiB)**. This is the app bundle, not an App Store download or the storage reported by an installed device. Signing, device thinning, filesystem allocation, and cached weather can change those sizes.
 
 ## Credits
 

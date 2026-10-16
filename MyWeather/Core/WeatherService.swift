@@ -70,9 +70,10 @@ public struct OpenMeteoWeatherService: WeatherServing {
             URLQueryItem(name: "latitude", value: String(city.latitude)),
             URLQueryItem(name: "longitude", value: String(city.longitude)),
             URLQueryItem(name: "timezone", value: city.timezone),
-            // Padding supplies the complete local day during 23/25-hour DST days.
+            // One padding day on either side covers 23/25-hour local DST days.
+            // The interface presents today and the following four days only.
             URLQueryItem(name: "past_days", value: "1"),
-            URLQueryItem(name: "forecast_days", value: "2"),
+            URLQueryItem(name: "forecast_days", value: "6"),
             URLQueryItem(name: "timeformat", value: "unixtime"),
             URLQueryItem(name: "temperature_unit", value: "celsius"),
             URLQueryItem(name: "current", value: "temperature_2m,relative_humidity_2m,weather_code"),

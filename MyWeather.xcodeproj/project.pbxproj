@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A10000000000000000000014 /* ForecastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000014 /* ForecastView.swift */; };
+		A10000000000000000000015 /* ForecastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000015 /* ForecastTests.swift */; };
 		A10000000000000000000001 /* MyWeatherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* MyWeatherApp.swift */; };
 		A10000000000000000000002 /* WeatherStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* WeatherStore.swift */; };
 		A10000000000000000000003 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* Models.swift */; };
@@ -34,6 +36,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A20000000000000000000014 /* ForecastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastView.swift; sourceTree = "<group>"; };
+		A20000000000000000000015 /* ForecastTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastTests.swift; sourceTree = "<group>"; };
 		A20000000000000000000001 /* MyWeatherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyWeatherApp.swift; sourceTree = "<group>"; };
 		A20000000000000000000002 /* WeatherStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherStore.swift; sourceTree = "<group>"; };
 		A20000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -115,6 +119,7 @@
 				A20000000000000000000007 /* ContentView.swift */,
 				A20000000000000000000008 /* AddCityView.swift */,
 				A20000000000000000000012 /* DayTimelineView.swift */,
+				A20000000000000000000014 /* ForecastView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -124,6 +129,7 @@
 			children = (
 				A2000000000000000000000A /* MyWeatherCoreTests.swift */,
 				A20000000000000000000013 /* DayTimelineTests.swift */,
+				A20000000000000000000015 /* ForecastTests.swift */,
 			);
 			path = MyWeatherTests;
 			sourceTree = "<group>";
@@ -254,6 +260,7 @@
 				A10000000000000000000008 /* AddCityView.swift in Sources */,
 				A10000000000000000000011 /* DayTimeline.swift in Sources */,
 				A10000000000000000000012 /* DayTimelineView.swift in Sources */,
+				A10000000000000000000014 /* ForecastView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -263,6 +270,7 @@
 			files = (
 				A1000000000000000000000A /* MyWeatherCoreTests.swift in Sources */,
 				A10000000000000000000013 /* DayTimelineTests.swift in Sources */,
+				A10000000000000000000015 /* ForecastTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -317,7 +325,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = MyWeather/MyWeather.entitlements;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "My Weather";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
@@ -329,7 +337,7 @@
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5.2;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nikhilsharma.MyWeather;
 				PRODUCT_MODULE_NAME = MyWeatherCore;
 				PRODUCT_NAME = "My Weather";
@@ -347,7 +355,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = MyWeather/MyWeather.entitlements;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "My Weather";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
@@ -359,7 +367,7 @@
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5.2;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nikhilsharma.MyWeather;
 				PRODUCT_MODULE_NAME = MyWeatherCore;
 				PRODUCT_NAME = "My Weather";

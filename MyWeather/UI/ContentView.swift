@@ -3,12 +3,18 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var store: WeatherStore
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var screen: WeatherScreen = .today
     @State private var showingAddCity = false
     @State private var showingAbout = false
     @State private var cityRowWidth: CGFloat = 0
     @ScaledMetric(relativeTo: .footnote) private var minimumTimelineWidth = 210.0
     @ScaledMetric(relativeTo: .footnote) private var timelineFontSize = 11.0
     @ScaledMetric(relativeTo: .subheadline) private var weatherFontSize = 13.0
+
+    init(initialScreen: WeatherScreen = .today) {
+        _screen = State(initialValue: initialScreen)
+    }
 
     var body: some View {
         NavigationStack {
@@ -30,6 +36,12 @@ struct ContentView: View {
                     width: sizing.timelineWidth,
                     fontSize: timelineFontSize
                 )
+                let forecastTemperatureWidth = max(30, WeatherBarMetrics.naturalTextWidth(
+                    store.snapshots.values.flatMap { snapshot in
+                        (snapshot.forecastDays ?? []).flatMap { day in
+                            ["\(Int(day.weather.minimumTemperature.rounded()))°", "\(Int(day.weather.maximumTemperature.rounded()))°"]
+                        }
+                    }, fontSize: weatherFontSize) + 2)
                 List {
                     Section {
                         if store.cities.isEmpty {
@@ -43,24 +55,18 @@ struct ContentView: View {
                                     isUnavailable: store.unavailableCityIDs.contains(city.id),
                                     now: context.date,
                                     sizing: sizing,
-                                    metrics: metrics
+                                    metrics: metrics,
+                                    screen: screen,
+                                    forecastTemperatureWidth: forecastTemperatureWidth
                                 )
+                                .moveDisabled(screen == .forecast)
+                                .deleteDisabled(screen == .forecast)
                             }
                             .onDelete(perform: store.remove)
                             .onMove(perform: store.move)
                         }
                     } header: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("My Weather")
-                                .font(.weatherLargeTitle)
-                                .foregroundStyle(Color.primary)
-                            Text(lastUpdatedText(store.lastUpdated))
-                                .font(.weatherFootnote)
-                                .foregroundStyle(Color.secondary)
-                        }
-                        .textCase(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, 6)
+                        screenHeader
                     }
                 }
             }
@@ -78,15 +84,17 @@ struct ContentView: View {
 
                     #if os(iOS)
                     EditButton()
-                        .disabled(store.cities.count < 2)
+                        .disabled(store.cities.count < 2 || screen == .forecast)
                     #endif
                 }
 
                 ToolbarItemGroup(placement: .primaryAction) {
-                    Button("Refresh") {
-                        Task { await store.refreshAll() }
+                    if screen == .today {
+                        Button("Refresh") {
+                            Task { await store.refreshAll() }
+                        }
+                        .disabled(store.cities.isEmpty || store.isRefreshing)
                     }
-                    .disabled(store.cities.isEmpty || store.isRefreshing)
 
                     Button("Add") {
                         showingAddCity = true
@@ -104,6 +112,45 @@ struct ContentView: View {
         }
         .font(.weatherBody)
     }
+
+    private var screenHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 8) {
+                    title.fixedSize(horizontal: true, vertical: true)
+                    Spacer(minLength: 0)
+                    WeatherViewSwitch(screen: screen, select: selectScreen)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    title
+                    WeatherViewSwitch(screen: screen, select: selectScreen)
+                }
+            }
+            Text(screen == .today ? lastUpdatedText(store.lastUpdated) : "Temperatures in °C")
+                .font(.weatherFootnote).foregroundStyle(Color(white: 0.65))
+        }
+        .textCase(nil)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+        .simultaneousGesture(DragGesture(minimumDistance: 28).onEnded { value in
+            guard abs(value.translation.width) > 40,
+                  abs(value.translation.width) > abs(value.translation.height) * 1.4 else { return }
+            selectScreen(value.translation.width < 0 ? .forecast : .today)
+        })
+    }
+
+    private var title: some View {
+        Text("My Weather").font(.weatherLargeTitle).tracking(-1.2).foregroundStyle(Color.primary)
+            .accessibilityHint("Swipe Left for the 5-Day Forecast, or Right for Today. The View Switch Is Also Available.")
+    }
+
+    private func selectScreen(_ next: WeatherScreen) {
+        guard screen != next else { return }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.56, dampingFraction: 0.92)) {
+            screen = next
+        }
+    }
 }
 
 struct CityRow: View {
@@ -113,6 +160,8 @@ struct CityRow: View {
     let now: Date
     let sizing: CityWeatherSizing
     let metrics: WeatherBarMetrics
+    var screen: WeatherScreen = .today
+    var forecastTemperatureWidth: CGFloat = 36
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -129,7 +178,11 @@ struct CityRow: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .combine)
-            if let timeline = snapshot?.dayTimeline {
+            if screen == .forecast {
+                ForecastCityView(city: city, snapshot: snapshot, now: now,
+                                 temperatureWidth: forecastTemperatureWidth, rowWidth: sizing.rowWidth)
+                    .transition(.opacity)
+            } else if let timeline = snapshot?.dayTimeline {
                 CityWeatherLayout(sizing: sizing) {
                     weatherText
                         .accessibilitySortPriority(1)
@@ -155,7 +208,7 @@ struct CityRow: View {
 
     @ViewBuilder
     private var currentTemperature: some View {
-        if let snapshot {
+        if screen == .today, let snapshot {
             Text(WeatherSummaryText(snapshot).current)
                 .font(.weatherSubheadline)
                 .monospacedDigit()
@@ -251,15 +304,16 @@ struct DailyConditionRow: View {
 struct DailyConditionBadge: View {
     static let horizontalInset: CGFloat = 8
     let condition: WholeDayCondition
+    var compact = false
 
     var body: some View {
         let palette = DailyConditionPalette(condition)
         Text(condition.rawValue)
-            .font(.weatherSubheadline)
+            .font(compact ? .weatherFootnote : .weatherSubheadline)
             .foregroundStyle(palette.foreground)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, Self.horizontalInset)
-            .padding(.vertical, 3)
+            .padding(.vertical, compact ? 1 : 3)
             .background {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .fill(palette.background)

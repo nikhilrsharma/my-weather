@@ -98,8 +98,17 @@ public enum ForecastBuilder {
         }
 
         let timezone = TimeZone(identifier: requestedTimezone ?? response.timezone ?? "UTC") ?? TimeZone(secondsFromGMT: 0)!
-        let index = try dailyIndex(response: response, timezone: timezone)
-        guard daily.minimumTemperatures[index] <= daily.maximumTemperatures[index] else {
+        let dates = try dailyDates(response: response, timezone: timezone)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timezone
+        let index: Int
+        if let currentDate = response.current.time?.date(in: timezone) {
+            guard let match = dates.firstIndex(where: { calendar.isDate($0, inSameDayAs: currentDate) }) else {
+                throw WeatherDataError.invalidDailyWeather
+            }
+            index = match
+        } else { index = 0 }
+        guard zip(daily.minimumTemperatures, daily.maximumTemperatures).allSatisfy({ $0 <= $1 }) else {
             throw WeatherDataError.invalidDailyWeather
         }
 
@@ -109,37 +118,56 @@ public enum ForecastBuilder {
             condition: WeatherCondition(wmoCode: response.current.weatherCode)
         )
 
-        let today = TodayForecast(
-            minimumTemperature: daily.minimumTemperatures[index],
-            maximumTemperature: daily.maximumTemperatures[index],
-            condition: WholeDayCondition(wmoCode: daily.weatherCodes[index]),
-            precipitation: precipitationChance(daily: daily, index: index)
-        )
+        let days = (index..<min(index + 5, dates.count)).map { dayIndex in
+            DailyForecast(
+                date: dates[dayIndex],
+                weather: TodayForecast(
+                    minimumTemperature: daily.minimumTemperatures[dayIndex],
+                    maximumTemperature: daily.maximumTemperatures[dayIndex],
+                    condition: WholeDayCondition(wmoCode: daily.weatherCodes[dayIndex]),
+                    precipitation: precipitationChance(daily: daily, index: dayIndex)
+                ),
+                timeline: DayTimelineBuilder.build(response: response, dailyIndex: dayIndex,
+                                                   timezone: timezone, date: dates[dayIndex])
+            )
+        }
+        let today = days[0]
 
         return WeatherSnapshot(
-            current: current, today: today,
-            dayTimeline: DayTimelineBuilder.build(response: response, dailyIndex: index, timezone: timezone)
+            current: current, today: today.weather, dayTimeline: today.timeline, forecastDays: days
         )
     }
 
-    private static func dailyIndex(response: ForecastResponse, timezone: TimeZone) throws -> Int {
-        guard let currentDate = response.current.time?.date(in: timezone) else { return 0 }
+    private static func dailyDates(response: ForecastResponse, timezone: TimeZone) throws -> [Date] {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
         formatter.timeZone = timezone
         formatter.dateFormat = "yyyy-MM-dd"
-        let today = formatter.string(from: currentDate)
+        formatter.isLenient = false
         // Open-Meteo's daily boundaries use the offset at request time, even on
-        // DST days. Hourly timestamps below are converted with the city's zone.
-        formatter.timeZone = TimeZone(secondsFromGMT: response.utcOffsetSeconds ?? timezone.secondsFromGMT(for: currentDate))
-        guard let index = response.daily.time.firstIndex(where: { value in
+        // DST days. Decode the intended calendar date, then create its real local
+        // midnight. Hourly and solar timestamps remain absolute instants.
+        let apiFormatter = formatter.copy() as! DateFormatter
+        let reference = response.current.time?.date(in: timezone) ?? Date(timeIntervalSince1970: 0)
+        apiFormatter.timeZone = TimeZone(secondsFromGMT: response.utcOffsetSeconds ?? timezone.secondsFromGMT(for: reference))
+        let dates = try response.daily.time.map { value -> Date in
+            let label: String
             switch value {
-            case .iso(let string): return String(string.prefix(10)) == today
+            case .iso(let string): label = String(string.prefix(10))
             case .unix:
-                return value.date(in: timezone).map { formatter.string(from: $0) == today } ?? false
+                guard let instant = value.date(in: timezone) else { throw WeatherDataError.invalidDailyWeather }
+                label = apiFormatter.string(from: instant)
             }
-        }) else { throw WeatherDataError.invalidDailyWeather }
-        return index
+            guard let date = formatter.date(from: label) else { throw WeatherDataError.invalidDailyWeather }
+            return date
+        }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timezone
+        guard zip(dates, dates.dropFirst()).allSatisfy({ calendar.date(byAdding: .day, value: 1, to: $0) == $1 }) else {
+            throw WeatherDataError.invalidDailyWeather
+        }
+        return dates
     }
 
     private static func precipitationChance(daily: DailyResponse, index: Int) -> PrecipitationChance {
